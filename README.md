@@ -4,7 +4,7 @@ My collection of Claude-and-friends skills, agents, and bits.
 
 ## Skills
 
-- [zotero-plugin](skills/zotero-plugin/SKILL.md) — Expert guide for building, debugging, and releasing Zotero 7–9 bootstrapped plugins.
+- [zotero-plugin](skills/zotero-plugin/SKILL.md) — Expert guide for building, debugging, and releasing Zotero 7–9 plugins. Covers both the classic bootstrapped stack and the TypeScript `zotero-plugin-scaffold` / `zotero-plugin-toolkit` stack.
 
 ## Installing a skill
 
