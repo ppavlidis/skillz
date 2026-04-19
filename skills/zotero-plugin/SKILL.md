@@ -367,6 +367,24 @@ gh release create vX.Y.Z plugin-name.xpi --title "vX.Y.Z" --notes "..."
 `updates.json` must contain an entry pointing to the GitHub release download URL —
 Zotero checks this URL for auto-updates. Without it, installed plugins never update.
 
+## Keep the README in sync with code changes
+
+After any user-visible change to a plugin, check `README.md` and update it if needed.
+The README is how users discover what the plugin does and how to use it — code changes
+that don't touch it leave the docs silently wrong.
+
+Review the README when the change adds, removes, or alters:
+
+- A menu item, keyboard shortcut, or right-click entry (update the "Usage" / features list).
+- A preference or pref pane option (update any settings docs or screenshots).
+- Supported Zotero versions (`strict_min_version` / `strict_max_version` in manifest →
+  also mention in the README's requirements).
+- Installation steps, the XPI filename, or the GitHub release URL.
+- Observable behavior a user could notice (new notifications, different defaults, etc.).
+
+Pure internal refactors with no behavior change don't need a README update — but say so
+when reporting the task as done, so the user knows you checked.
+
 ## Info panel DOM (for plugins that modify the item info pane)
 
 - Rows: `div.meta-row` inside `div#info-table`
