@@ -21,8 +21,8 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 # Stable DOI for Gillis & Pavlidis 2011
 REAL_DOI = "10.1371/journal.pone.0017258"
-# This DOI pattern is permanently reserved for testing (never assigned)
-FAKE_DOI = "10.0000/citation.validator.test.fixture.nonexistent"
+# This DOI is permanently reserved for testing (never assigned)
+FAKE_DOI = "10.0000/test-fixture-nonexistent.2023.99999"
 
 
 # ---------------------------------------------------------------------------

@@ -116,6 +116,19 @@ For plain-text input, having DOIs in the bibliography is strongly recommended.
 - Results are cached in `~/.cache/citation-validator/crossref/`. Use
   `--refresh` to bypass the cache.
 
+### arXiv DOIs (`10.48550/arXiv.*`)
+
+arXiv registers DOIs with DataCite, not CrossRef — CrossRef returns 404 for
+all `10.48550/arXiv.*` DOIs regardless of whether the paper exists.  The
+validator detects this prefix and falls back to the arXiv export API
+(`https://export.arxiv.org/abs/{id}`) for verification: 200 → `VERIFIED`
+(with `ARXIV_DOI` flag), 404 → `DOI_NOT_FOUND`, network error → `UNVERIFIABLE`.
+
+**Biolit integration path**: if `biolit` is available in the environment, it
+can resolve arXiv DOIs via its own DOI pipeline (which already handles
+DataCite) and may also fetch abstracts for arXiv papers.  Once biolit exposes
+a public `resolve(doi)` function, the arXiv fallback here can delegate to it.
+
 ## Level 3: Relevance check (v0.2)
 
 The third validation dimension: does the cited paper's *content* actually

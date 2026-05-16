@@ -137,6 +137,34 @@ def lookup_doi(doi: str, *, email: str | None = None,
     return result
 
 
+ARXIV_ABS_URL = "https://export.arxiv.org/abs/"
+
+
+def check_arxiv(arxiv_id: str, *, refresh: bool = False) -> bool | None:
+    """
+    Verify an arXiv paper exists.  Returns True (found), False (404), or None (error).
+    arXiv DOIs (10.48550/arXiv.*) are registered with DataCite, not CrossRef.
+    """
+    cache_key = f"arxiv:{arxiv_id.lower()}"
+    if not refresh:
+        hit, value = _read_cache(cache_key)
+        if hit:
+            return value  # type: ignore[return-value]
+
+    try:
+        resp = _get(ARXIV_ABS_URL + arxiv_id)
+    except requests.RequestException:
+        return None
+
+    if resp.status_code == 200:
+        _write_cache(cache_key, True)
+        return True
+    if resp.status_code == 404:
+        _write_cache(cache_key, False)
+        return False
+    return None
+
+
 def search_by_title(title: str, author: str | None = None,
                     year: int | None = None, rows: int = 3,
                     *, email: str | None = None,

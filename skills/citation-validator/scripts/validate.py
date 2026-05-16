@@ -75,6 +75,11 @@ _DOI_PREFIX_RE = re.compile(r"^https?://(dx\.)?doi\.org/", re.IGNORECASE)
 _DOI_RE = re.compile(r"\b(10\.\d{4,}/\S+)", re.IGNORECASE)
 
 
+_ARXIV_DOI_RE = re.compile(r"^10\.48550/arXiv\.", re.IGNORECASE)
+# Minimum DOI suffix length (after "10.xxxx/") to reject truncated line-wrapped DOIs
+_MIN_DOI_SUFFIX = 5
+
+
 def _clean_doi(raw: str | None) -> str | None:
     if not raw:
         return None
@@ -82,12 +87,26 @@ def _clean_doi(raw: str | None) -> str | None:
     doi = _DOI_PREFIX_RE.sub("", doi)
     doi = re.sub(r"^doi:\s*", "", doi, flags=re.IGNORECASE)
     doi = doi.rstrip(".,;)")
-    return doi if doi.startswith("10.") else None
+    if not doi.startswith("10."):
+        return None
+    # Reject truncated DOIs — publisher/journal prefix only with no real article ID.
+    # Valid article DOIs always contain at least one digit in the suffix
+    # (e.g. "10.1126/science" is a journal prefix; "10.1126/science.aaa1934" is an article).
+    parts = doi.split("/", 1)
+    if len(parts) < 2 or len(parts[1]) < _MIN_DOI_SUFFIX:
+        return None
+    if not re.search(r"\d", parts[1]):
+        return None
+    return doi
 
 
 def _extract_doi(text: str) -> str | None:
     m = _DOI_RE.search(text)
     return m.group(1).rstrip(".,;)>\"]}'") if m else None
+
+
+def _is_arxiv_doi(doi: str | None) -> bool:
+    return bool(doi and _ARXIV_DOI_RE.match(doi))
 
 
 # ---------------------------------------------------------------------------
@@ -189,24 +208,38 @@ def parse_text(text: str) -> list[dict]:
     """
     blocks = re.split(r"\n\s*\n|\n(?=\s*[\[(]?\d+[\].)]\s)", text.strip())
     citations = []
+    seen_dois: set[str] = set()
     for i, block in enumerate(blocks, start=1):
         block = block.strip()
         if not block or len(block) < 20:
             continue
+        # Skip known publisher/preprint page-header/footer patterns
+        if re.match(r"Downloaded from https?://", block, re.IGNORECASE):
+            continue
+        if re.match(r"bioRxiv preprint", block, re.IGNORECASE):
+            continue
+        if re.match(r"PLOS\s+\w", block):
+            continue
+        # Skip blocks that are too short after stripping URLs/DOIs (other footer artifacts)
+        block_no_url = re.sub(r"https?://\S+|10\.\d{4,}/\S+", "", block).strip()
+        if len(block_no_url) < 15:
+            continue
 
-        # DOI — most reliable signal
-        doi = _extract_doi(block)
+        # DOI — most reliable signal; _clean_doi filters truncated/malformed DOIs
+        doi = _clean_doi(_extract_doi(block))
+        # Skip duplicate DOIs with no meaningful surrounding text (footer/header artifacts)
+        if doi and doi in seen_dois and not block_no_url:
+            continue
         if doi:
-            doi = doi.rstrip(".,;)")
+            seen_dois.add(doi)
 
-        # Year
+        # Year — only accept 1900–2099 to avoid issue numbers like "6226"
         year = None
-        ym = re.search(r"\((\d{4})\)", block) or re.search(r"\b((?:19|20)\d{2})\b", block)
-        if ym:
-            try:
-                year = int(ym.group(1))
-            except (ValueError, IndexError):
-                pass
+        for ym in re.finditer(r"\((\d{4})\)|\b((?:19|20)\d{2})\b", block):
+            candidate = int(ym.group(1) or ym.group(2))
+            if 1900 <= candidate <= 2099:
+                year = candidate
+                break
 
         # Title: pattern "Authors (year). Title. Journal" or "(year) Title"
         title = None
@@ -346,6 +379,29 @@ def validate_citation(citation: dict, *, email: str | None = None,
     error: str | None = None
 
     try:
+        if doi and _is_arxiv_doi(doi):
+            # arXiv registers DOIs with DataCite, not CrossRef — verify via arXiv API
+            arxiv_id = re.sub(r"(?i)^10\.48550/arXiv\.", "", doi)
+            ok = _crossref.check_arxiv(arxiv_id, refresh=refresh)
+            status = "VERIFIED" if ok else ("UNVERIFIABLE" if ok is None else "DOI_NOT_FOUND")
+            return {
+                "key": citation.get("key"),
+                "status": status,
+                "flags": "ARXIV_DOI" if ok else "",
+                "confidence": 0.85 if ok else 0.5,
+                "stated_title": title,
+                "stated_doi": doi,
+                "stated_year": year,
+                "stated_first_author": first_author,
+                "crossref_title": None,
+                "crossref_doi": doi if ok else None,
+                "crossref_year": None,
+                "crossref_first_author": None,
+                "title_similarity": None,
+                "year_match": None,
+                "author_match": None,
+                "notes": "verified via arXiv API" if ok else "arXiv DOI; not in CrossRef",
+            }
         if doi:
             found = _crossref.lookup_doi(doi, email=email, refresh=refresh)
         elif title:
