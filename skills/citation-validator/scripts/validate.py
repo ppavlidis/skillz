@@ -224,13 +224,26 @@ def parse_text(text: str) -> list[dict]:
         block = block.strip()
         if not block or len(block) < 20:
             continue
-        # Skip known publisher/preprint page-header/footer patterns
+        # Skip blocks that are pure publisher/preprint page-header/footer patterns
         if re.match(r"Downloaded from https?://", block, re.IGNORECASE):
             continue
         if re.match(r"bioRxiv preprint", block, re.IGNORECASE):
             continue
         if re.match(r"PLOS\s+\w", block):
             continue
+        # Skip figure/table caption blocks (appear after references in some PDFs)
+        if re.match(r"(?:Figure|Fig\.|Table)\s+\d+", block, re.IGNORECASE):
+            continue
+        # Strip publisher footer clusters embedded WITHIN citation blocks.
+        # PLOS footers look like: "Short running title\nPLOS Journal | https://doi.org/...\nDate\nPage / Total"
+        # We strip: the PLOS line, the preceding line (often a short running title), and 1-2 following lines.
+        block = re.sub(
+            r"\n[^\n]*\n[^\n]*\bPLOS\s+\w+[^\n]*(?:\n[^\n]*){1,2}",
+            "",
+            block,
+        )
+        # OUP: "Downloaded from https://..." already handled above; strip if mid-block
+        block = re.sub(r"\n[^\n]*Downloaded from https?://[^\n]*", "", block, flags=re.IGNORECASE)
         # Skip blocks that are too short after stripping URLs/DOIs (other footer artifacts)
         block_no_url = re.sub(r"https?://\S+|10\.\d{4,}/\S+", "", block).strip()
         if len(block_no_url) < 15:
@@ -239,8 +252,13 @@ def parse_text(text: str) -> list[dict]:
         # Normalize intra-block line breaks: wrapped references become one line
         block_flat = re.sub(r"\s*\n\s*", " ", block).strip()
 
-        # DOI — most reliable signal; _clean_doi filters truncated/malformed DOIs
+        # DOI — extract before stripping URL annotations (DOI may be inside an
+        # "Available from: https://doi.org/..." link)
         doi = _clean_doi(_extract_doi(block_flat))
+
+        # Strip URL/PMID suffixes for cleaner title extraction
+        block_flat = re.sub(r"\s*Available from:\s*https?://\S+", "", block_flat, flags=re.IGNORECASE)
+        block_flat = re.sub(r"\s*PMID:\s*\d+", "", block_flat, flags=re.IGNORECASE)
         # Skip duplicate DOIs with no meaningful surrounding text (footer/header artifacts)
         if doi and doi in seen_dois and not block_no_url:
             continue
@@ -255,13 +273,35 @@ def parse_text(text: str) -> list[dict]:
                 year = candidate
                 break
 
-        # Title extraction — three patterns tried in priority order:
+        # Strip BMC/BioMed Central page-footer lines embedded within citation blocks
+        # (format: "Author et al JournalName YEAR, Vol(Issue):Pages\nhttp://...")
+        block_flat = re.sub(
+            r"\s+[A-Z][a-z]+ (?:et al|and [A-Z][a-z]+) [A-Za-z ]+ \d{4}, [0-9()\-:Suppl]+\s+https?://\S+",
+            "",
+            block_flat,
+        )
+
+        # Title extraction — four patterns tried in priority order:
         title = None
 
+        # Pattern 0: "Author(s): Title. Journal YEAR" — BMC/NLM colon-before-title format.
+        # The author list ends with "Surname I:" (possibly with et al) and the title follows.
+        # Handles: plain period, question mark, exclamation; optional leading quote on title.
+        colon_m = re.search(
+            r"(?:\bet al\.?\s*|[A-Z][a-z]+\s+[A-Z]{1,3})\s*:\s+(\"?[A-Z][^.?!]{10,})[.?!]",
+            block_flat,
+        )
+        if colon_m:
+            candidate = colon_m.group(1).strip().strip('"').rstrip(".,")
+            # Reject if the "title" looks like a journal citation (contains year + vol)
+            if not re.search(r"\d{4},\s*\d+", candidate):
+                title = candidate
+
         # Pattern 1: "(YEAR). Title." or "(YEAR) Title" — APA/Nature style
-        tm = re.search(r"\((?:19|20)\d{2}\)\.?\s+([A-Z][^.]{10,})\.", block_flat)
-        if tm:
-            title = tm.group(1).strip().rstrip(".")
+        if not title:
+            tm = re.search(r"\((?:19|20)\d{2}\)\.?\s+([A-Z][^.]{10,})\.", block_flat)
+            if tm:
+                title = tm.group(1).strip().rstrip(".")
 
         # Pattern 2: ". YEAR. Title." — Vancouver with year after authors (e.g. JI style)
         if not title:
@@ -278,12 +318,21 @@ def parse_text(text: str) -> list[dict]:
                 # (short all-caps words), volume/page patterns
                 if len(seg) < 20:
                     continue
-                if re.search(r"\d+:\d+", seg):  # vol:page
+                # vol:page in any form: "27:1860", "27(13):1860", "215(3):403"
+                if re.search(r"\d+\(?(?:\d+\))?:\d+", seg):
                     continue
                 if re.match(r"[A-Z][a-z]+ [A-Z]{1,2}[,;]?$", seg):  # "Author I"
                     continue
-                # Accept: starts with capital, contains at least one lowercase word
-                if re.match(r"[A-Z]", seg) and re.search(r"\b[a-z]{3,}\b", seg):
+                # Reject author-list segments: "Surname I[,.]" at the start
+                if re.match(r"^[A-Z][a-z]+\s+[A-Z]{1,3}[,.]", seg):
+                    continue
+                # Reject multi-author lists: "Name I, Name2 GH, Name3 X, et al" pattern
+                # (≥2 commas + initials after each family name)
+                if seg.count(",") >= 2 and re.search(r"\b[A-Z]{1,2}\b", seg):
+                    continue
+                # Accept: starts with capital, contains 3+ consecutive lowercase letters
+                # (use [a-z]{3,} not \b[a-z]{3,}\b so title-case words like "Ontology" pass)
+                if re.match(r"[A-Z]", seg) and re.search(r"[a-z]{3,}", seg):
                     title = seg.rstrip(".")
                     break
 
@@ -374,8 +423,9 @@ def compare(stated: dict, found: dict | None, doi_was_given: bool) -> dict:
     ym = _year_ok(stated.get("year"), found.get("year"))
     am = _author_ok(stated.get("first_author"), found.get("first_author"))
     source = found.get("source", "crossref")
+    has_stated_title = bool(stated.get("title"))
 
-    if ts < _TITLE_WEAK:
+    if has_stated_title and ts < _TITLE_WEAK:
         flags.append("TITLE_MISMATCH")
     if ym is False:
         flags.append("YEAR_MISMATCH")
@@ -383,7 +433,11 @@ def compare(stated: dict, found: dict | None, doi_was_given: bool) -> dict:
         flags.append("AUTHOR_MISMATCH")
 
     if doi_was_given:
-        if ts >= _TITLE_MATCH and ym is not False:
+        # No stated title: DOI resolved is sufficient evidence — VERIFIED at lower confidence
+        if not has_stated_title:
+            status = "VERIFIED"
+            conf = 0.75
+        elif ts >= _TITLE_MATCH and ym is not False:
             status = "VERIFIED"
             conf = round(0.85 + ts * 0.15, 2)
         elif ts >= _TITLE_WEAK and ym is not False:
@@ -601,6 +655,47 @@ def write_meta(results: list[dict], input_path: Path, out_path: Path,
 
 
 # ---------------------------------------------------------------------------
+# PDF text extraction
+# ---------------------------------------------------------------------------
+
+_REF_SECTION_RE = re.compile(
+    r"\n(?:References|REFERENCES|Bibliography|BIBLIOGRAPHY|Works Cited|WORKS CITED)"
+    r"[\s\n]",
+    re.MULTILINE,
+)
+
+
+def _extract_pdf_text(path: Path) -> str:
+    """
+    Extract the reference section from a PDF using pymupdf (fitz), with pypdf fallback.
+    Returns only the text from the references/bibliography section onward, so that
+    parse_text does not accidentally consume figure captions or body text.
+    Falls back to the full document text if no reference section heading is found.
+    """
+    try:
+        import fitz  # pymupdf
+        doc = fitz.open(str(path))
+        pages = [page.get_text() for page in doc]
+        doc.close()
+        full_text = "\n".join(pages)
+    except ImportError:
+        try:
+            from pypdf import PdfReader  # type: ignore[import]
+            reader = PdfReader(str(path))
+            full_text = "\n".join(p.extract_text() or "" for p in reader.pages)
+        except ImportError:
+            raise RuntimeError(
+                "PDF input requires pymupdf (pip install pymupdf) or pypdf (pip install pypdf)."
+            )
+
+    # Find the LAST occurrence of a reference-section heading (avoids in-text "References" mentions)
+    matches = list(_REF_SECTION_RE.finditer(full_text))
+    if matches:
+        return full_text[matches[-1].start():]
+    return full_text
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -631,8 +726,11 @@ def main(argv=None) -> int:
         if not args.input.exists():
             print(f"ERROR: file not found: {args.input}", file=sys.stderr)
             return 1
-        text = args.input.read_text(errors="replace")
         input_path = args.input
+        if input_path.suffix.lower() == ".pdf":
+            text = _extract_pdf_text(input_path)
+        else:
+            text = input_path.read_text(errors="replace")
 
     # Detect format
     fmt = args.format
