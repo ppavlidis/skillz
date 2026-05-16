@@ -1,0 +1,5 @@
+1. Gillis J, Pavlidis P (2011). The Impact of Multifunctional Genes on "Guilt by Association" Analysis. PLoS ONE, 6(2):e17258. doi:10.1371/journal.pone.0017258
+
+2. Ghost AB, Phantom CD (2023). A completely fabricated study on imaginary biology. Journal of Nonexistent Research, 99(1):1-10. doi:10.0000/citation.validator.test.fixture.nonexistent
+
+3. Love MI, Huber W, Anders S (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology, 15:550.
