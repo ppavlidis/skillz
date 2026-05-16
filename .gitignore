@@ -2,3 +2,7 @@
 *.skill
 __pycache__/
 .claude/
+skills/*/.venv/
+skills/*/.pytest_cache/
+skills/*/__pycache__/
+skills/*-workspace/
