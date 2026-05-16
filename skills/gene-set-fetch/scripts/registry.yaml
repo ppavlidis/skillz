@@ -1,0 +1,135 @@
+# gene-set-fetch — set catalog
+#
+# Single source of truth. Every set name in the SKILL.md catalog has a recipe here.
+# Three recipe types:
+#
+#   - source:    one fetcher under fetchers/, produces the canonical list
+#   - compose:   set algebra (union / intersection) over other named sets
+#
+# All set algebra joins on `ensembl_id`, normalized to the Ensembl release
+# passed at runtime (--ensembl-release, default below).
+
+defaults:
+  ensembl_release: 113
+
+sets:
+
+  # ---- Protein-coding ----
+
+  protein_coding_human:
+    species: human
+    source: ensembl_biomart
+    args:
+      biotype: protein_coding
+
+  protein_coding_human_strict:
+    species: human
+    compose:
+      op: intersection
+      members:
+        - protein_coding_human          # Ensembl biotype
+        - protein_coding_human_hgnc     # HGNC locus_type == "gene with protein product"
+        - protein_coding_human_gencode  # GENCODE gene_type == "protein_coding"
+
+  protein_coding_human_hgnc:
+    species: human
+    source: hgnc
+    args:
+      locus_type: gene_with_protein_product
+
+  protein_coding_human_gencode:
+    species: human
+    source: gencode
+    args:
+      gene_type: protein_coding
+
+  protein_coding_mouse:
+    species: mouse
+    source: ensembl_biomart
+    args:
+      biotype: protein_coding
+
+  protein_coding_mouse_strict:
+    species: mouse
+    compose:
+      op: intersection
+      members:
+        - protein_coding_mouse          # Ensembl biotype
+        - protein_coding_mouse_mgi      # MGI feature_type "protein coding gene"
+        - protein_coding_mouse_gencode  # GENCODE gene_type == "protein_coding"
+
+  protein_coding_mouse_mgi:
+    species: mouse
+    source: mgi
+    args:
+      feature_type: protein_coding_gene
+
+  protein_coding_mouse_gencode:
+    species: mouse
+    source: gencode
+    args:
+      gene_type: protein_coding
+
+  # ---- Transcription factors ----
+
+  tfs_human_lambert2018:
+    species: human
+    source: lambert2018
+
+  tfs_human_animaltfdb:
+    species: human
+    source: animaltfdb
+    args:
+      species_code: Homo_sapiens
+
+  tfs_human_union:
+    species: human
+    compose:
+      op: union
+      members:
+        - tfs_human_lambert2018
+        - tfs_human_animaltfdb
+
+  tfs_human_intersection:
+    species: human
+    compose:
+      op: intersection
+      members:
+        - tfs_human_lambert2018
+        - tfs_human_animaltfdb
+
+  tfs_mouse_animaltfdb:
+    species: mouse
+    source: animaltfdb
+    args:
+      species_code: Mus_musculus
+
+  tfs_mouse_lambert_orthologs:
+    species: mouse
+    source: ensembl_compara_ortholog_map
+    # Ensembl Compara via REST is used here instead of DIOPT. Rationale in
+    # SKILL.md and fetchers/ensembl_compara_ortholog_map.py: Compara wins on
+    # the canonical/durable axis (immutable per-release archived endpoint;
+    # official authority for vertebrate homology). If you want a DIOPT-based
+    # variant, add a sibling fetcher and a sibling named set.
+    args:
+      from_set: tfs_human_lambert2018
+      from_species: human
+      to_species: mouse
+      best_match: true
+
+  tfs_mouse_union:
+    species: mouse
+    compose:
+      op: union
+      members:
+        - tfs_mouse_animaltfdb
+        - tfs_mouse_lambert_orthologs
+
+  tfs_mouse_intersection:
+    species: mouse
+    compose:
+      op: intersection
+      members:
+        - tfs_mouse_animaltfdb
+        - tfs_mouse_lambert_orthologs

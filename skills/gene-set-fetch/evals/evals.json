@@ -1,0 +1,33 @@
+{
+  "skill_name": "gene-set-fetch",
+  "evals": [
+    {
+      "id": 0,
+      "name": "protein-coding-background-defensible",
+      "prompt": "I'm running a GO enrichment analysis on ~800 differentially expressed human genes from a brain bulk RNA-seq experiment. The journal we're targeting is picky about background gene sets — last reviewer dinged us for using a vague 'all human genes' background without saying which database. I need a defensible 'all human protein-coding genes' list where the choice of authority is documented and the file is reproducible (sha256 + version). Save it to /tmp/eval-bg.tsv and tell me what to cite in the methods section.",
+      "expected_output": "A protein-coding human gene list (~19-23K rows) saved at /tmp/eval-bg.tsv, with explicit citation of which authority (Ensembl/HGNC/GENCODE) was used and a sha256 / version recorded for reproducibility. Bonus for using protein_coding_human_strict (Ensembl ∩ HGNC ∩ GENCODE).",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "mouse-protein-coding-strict",
+      "prompt": "For my mouse single-cell paper, my PI asked specifically for 'the conservative set of mouse protein-coding genes — where Ensembl, MGI, and GENCODE all agree'. She wants this to be reproducible because she's been bitten before by gene-list drift. Get me the list, save it to /tmp/eval-mpc.tsv, and write a methods-section sentence I can paste into the manuscript.",
+      "expected_output": "A mouse protein-coding gene list (~21K rows) saved at /tmp/eval-mpc.tsv, derived from the three-way intersection of Ensembl, MGI, and GENCODE, with a methods-section sentence citing all three authorities and the version/release used.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "tf-union-with-broken-source",
+      "prompt": "I'm doing a TF target prediction analysis and I want to use the most inclusive set of human transcription factors I can — basically every gene that any major TF database considers a TF. Specifically: the UNION of Lambert 2018 and AnimalTFDB human TFs. Save the list to /tmp/eval-tfunion.tsv. If you hit any issues, tell me about them; don't just hand me a partial list silently.",
+      "expected_output": "Should report cleanly that AnimalTFDB is currently broken upstream (JS challenge / DNS / etc.) and explain the impact. Either (a) refuses to produce a partial list and explains, or (b) explicitly proposes falling back to Lambert-only with that decision called out. Should NOT silently fabricate or claim success.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "quick-tf-list-casual",
+      "prompt": "quick — i need a list of human TFs from lambert 2018 for a slide deck tomorrow. just save it somewhere i can grep it. like 5 minutes of work",
+      "expected_output": "A Lambert 2018 human TF list (~1637 rows) saved to a sensible path, with at least a brief mention of the source / version so the slide deck is citation-ready. Tests whether the skill triggers on casual phrasing.",
+      "files": []
+    }
+  ]
+}
