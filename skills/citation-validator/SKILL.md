@@ -45,6 +45,22 @@ or the DOI belongs to a completely different paper.  This skill checks both.
 
 v0.1 ships Levels 1 and 2.  Level 3 is designed below.
 
+## Recommended workflow (pre-submission)
+
+The primary use case is checking your own bibliography before journal submission.
+The most reliable input is a BibTeX export from your reference manager (Zotero, Mendeley, etc.) — DOIs are already present, parsing is exact.
+
+```bash
+# Best: export .bib from Zotero, then:
+python scripts/validate.py refs.bib --email you@example.com
+
+# Also works: paste bibliography from Word / Google Docs into a .txt file
+python scripts/validate.py refs.txt --email you@example.com
+
+# PDF input (experimental — see caveats below)
+python scripts/validate.py paper.pdf --email you@example.com
+```
+
 ## Usage
 
 ```bash
@@ -65,6 +81,17 @@ python scripts/validate.py refs.bib --out report.tsv
 ```
 
 Reads from stdin with `-` as the input path.
+
+### PDF input caveats
+
+PDF extraction is best-effort.  Known failure modes:
+
+- **Two-column layouts**: text is extracted column-interleaved; most references parse incorrectly.
+- **Figure captions after references**: filtered, but edge cases remain.
+- **Truncated DOIs**: line-wrapped DOIs in PDFs are cut at the break; the truncated form is not valid and yields a false PHANTOM.
+- **Running headers/footers**: PLOS, BMC, OUP page headers embedded between references are stripped, but non-standard footers may slip through.
+
+For any of these, exporting the bibliography from your reference manager as `.bib` or plain text is far more reliable.
 
 ## Status codes
 
