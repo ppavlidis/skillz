@@ -19,12 +19,28 @@ LLMs hallucinate citations. The pattern is consistent: plausible author
 names, plausible journals, plausible years — but the paper doesn't exist,
 or the DOI belongs to a completely different paper.  This skill checks both.
 
+## Citation taxonomy (Topaz et al. 2026 / CITADEL)
+
+| Status | Meaning | Action |
+|---|---|---|
+| `VERIFIED` | DOI resolved; title/year/author match ≥ 85% | Accept |
+| `VERIFIED_NO_DOI` | No DOI given; title search found a matching paper | Accept; add the DOI |
+| `PHANTOM` | DOI given but not registered anywhere — entirely fabricated | **Delete or replace** |
+| `CHIMERA` | DOI resolves to a real paper, but title < 50% match — real DOI attached to fabricated content | **Investigate — likely hallucination** |
+| `CORRUPTED` | DOI resolves, title 50–85% or metadata partly wrong — real paper, bad fields | Verify manually |
+| `SUSPICIOUS` | Weak title match (65–85%) in title-search path | Review manually |
+| `NOT_FOUND` | No DOI; title search returned no close match across all sources | Manual verification required |
+| `UNVERIFIABLE` | API/network error | Retry or check manually |
+
+`PHANTOM` and `CHIMERA` are the two strong hallucination signals
+(Topaz et al., *Lancet* 2026 — fabricated citations accelerating 12× from 2023 to 2026).
+
 ## Three levels of validation
 
 | Level | What's checked | Cost |
 |---|---|---|
 | **Level 1: DOI existence** | Is the DOI registered with CrossRef? | Fast, ~0.5s/citation |
-| **Level 2: Metadata match** | Does stated title/year/author match CrossRef's record? | Same call as Level 1 |
+| **Level 2: Metadata match** | Does stated title/year/author match record across CrossRef + OpenAlex + PubMed? | Same call + fallback |
 | **Level 3: Relevance check** | Does the paper's content match the context where it's cited? | Expensive; requires abstract + document; v0.2 |
 
 v0.1 ships Levels 1 and 2.  Level 3 is designed below.
@@ -52,28 +68,19 @@ Reads from stdin with `-` as the input path.
 
 ## Status codes
 
-| Status | Meaning | Action |
-|---|---|---|
-| `VERIFIED` | DOI exists; title/year/author match ≥ 85% | Accept |
-| `VERIFIED_NO_DOI` | No DOI given; title search found a matching paper | Accept; add the DOI |
-| `DOI_NOT_FOUND` | CrossRef 404 — this DOI was never registered | **Delete or replace** |
-| `METADATA_MISMATCH` | DOI resolves but metadata diverges significantly | Investigate — possibly hallucinated DOI attached to real content |
-| `SUSPICIOUS` | Weak title match; could be a real paper with unusual formatting | Review manually |
-| `NOT_FOUND` | No DOI; title search returned no close match | Manual verification required |
-| `UNVERIFIABLE` | API/network error | Retry or check manually |
-
-`DOI_NOT_FOUND` and `METADATA_MISMATCH` are the two strong hallucination signals.
+See taxonomy table above.
 
 ## Output columns
 
 | column | meaning |
 |---|---|
 | `key` | BibTeX key or reference number |
-| `status` | see table above |
+| `status` | see taxonomy table |
 | `flags` | comma-separated: `DOI_NOT_FOUND`, `TITLE_MISMATCH`, `YEAR_MISMATCH`, `AUTHOR_MISMATCH` |
 | `confidence` | 0–1; how confident the status assignment is |
 | `stated_title` / `stated_doi` / `stated_year` / `stated_first_author` | from input |
-| `crossref_title` / `crossref_doi` / `crossref_year` / `crossref_first_author` | from CrossRef |
+| `db_title` / `db_doi` / `db_year` / `db_first_author` | from the database that matched |
+| `source` | which database verified this: `crossref`, `openalex`, `pubmed`, `arxiv` |
 | `title_similarity` | 0–1 fuzzy match after Unicode normalisation and punctuation stripping |
 | `year_match` | True / False / None |
 | `author_match` | True / False / None |

@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 """
-citation-validator: check bibliography entries against CrossRef.
+citation-validator: check bibliography entries against CrossRef, OpenAlex, and PubMed.
 
 For each citation, checks whether the paper exists and whether the
-stated metadata (title, year, first author) matches what CrossRef
-returns.  Designed for personal validation of AI-generated bibliographies;
+stated metadata (title, year, first author) matches what is on record.
+Designed for personal validation of AI-generated bibliographies;
 occasional false positives are acceptable.
 
-Status codes
-------------
-VERIFIED          DOI resolved; title/year/author match CrossRef.
+Status codes (CITADEL taxonomy)
+--------------------------------
+VERIFIED          DOI resolved; title/year/author match ≥ 85%.
 VERIFIED_NO_DOI   No DOI given; found matching paper via title search.
-DOI_NOT_FOUND     DOI given but CrossRef returns 404 — likely hallucinated.
-METADATA_MISMATCH DOI resolves but metadata diverges significantly.
-SUSPICIOUS        Weak title match; needs manual review.
-NOT_FOUND         No DOI; title search returned no close match.
+PHANTOM           DOI given but not registered — entirely fabricated citation.
+CHIMERA           DOI resolves but title/author bear no resemblance (< 50%);
+                  real DOI attached to fabricated content (Topaz et al. 2026).
+CORRUPTED         DOI resolves but metadata partly wrong: real paper, bad
+                  metadata (wrong year, mismatched author, reformatted title).
+SUSPICIOUS        Weak title match (65–85%); needs manual review.
+NOT_FOUND         No DOI; title search returned no close match across all
+                  sources (CrossRef, OpenAlex, PubMed).
 UNVERIFIABLE      API/network error; could not check.
+
+Sources tried in order
+-----------------------
+DOI lookup:   CrossRef (authoritative) → arXiv API (for 10.48550/arXiv.*)
+Title search: CrossRef → OpenAlex → PubMed
 
 Usage
 -----
@@ -38,6 +47,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import _crossref
+import _openalex
+import _pubmed
 
 TOOL_VERSION = "0.1.0"
 
@@ -225,8 +236,11 @@ def parse_text(text: str) -> list[dict]:
         if len(block_no_url) < 15:
             continue
 
+        # Normalize intra-block line breaks: wrapped references become one line
+        block_flat = re.sub(r"\s*\n\s*", " ", block).strip()
+
         # DOI — most reliable signal; _clean_doi filters truncated/malformed DOIs
-        doi = _clean_doi(_extract_doi(block))
+        doi = _clean_doi(_extract_doi(block_flat))
         # Skip duplicate DOIs with no meaningful surrounding text (footer/header artifacts)
         if doi and doi in seen_dois and not block_no_url:
             continue
@@ -235,28 +249,49 @@ def parse_text(text: str) -> list[dict]:
 
         # Year — only accept 1900–2099 to avoid issue numbers like "6226"
         year = None
-        for ym in re.finditer(r"\((\d{4})\)|\b((?:19|20)\d{2})\b", block):
+        for ym in re.finditer(r"\((\d{4})\)|\b((?:19|20)\d{2})\b", block_flat):
             candidate = int(ym.group(1) or ym.group(2))
             if 1900 <= candidate <= 2099:
                 year = candidate
                 break
 
-        # Title: pattern "Authors (year). Title. Journal" or "(year) Title"
+        # Title extraction — three patterns tried in priority order:
         title = None
-        tm = re.search(r"\(\d{4}\)\.?\s+([^.]+(?:\.[^.]+)?)\.", block)
-        if tm:
-            title = tm.group(1).strip().strip("*_").rstrip(".")
-        elif "." in block:
-            parts = [p.strip() for p in block.split(".") if p.strip()]
-            # Heuristic: first sentence-like part after author section
-            if len(parts) >= 2 and len(parts[0]) < 100:
-                title = parts[1].strip("*_")
 
-        # First author: capitalized word near the start
+        # Pattern 1: "(YEAR). Title." or "(YEAR) Title" — APA/Nature style
+        tm = re.search(r"\((?:19|20)\d{2}\)\.?\s+([A-Z][^.]{10,})\.", block_flat)
+        if tm:
+            title = tm.group(1).strip().rstrip(".")
+
+        # Pattern 2: ". YEAR. Title." — Vancouver with year after authors (e.g. JI style)
+        if not title:
+            tm = re.search(r"\.\s+((?:19|20)\d{2})\.\s+([A-Z][^.]{10,})\.", block_flat)
+            if tm:
+                title = tm.group(2).strip().rstrip(".")
+
+        # Pattern 3: sentence scan — split on ". " and find the first segment that
+        # looks like a title (≥20 chars, not just author initials or a journal abbrev)
+        if not title:
+            sentences = [s.strip() for s in re.split(r"(?<=\.)\s+", block_flat) if s.strip()]
+            for seg in sentences[1:]:  # skip first segment (usually author list / ref number)
+                # Reject: author initials (e.g. "Gillis J"), journal abbreviations
+                # (short all-caps words), volume/page patterns
+                if len(seg) < 20:
+                    continue
+                if re.search(r"\d+:\d+", seg):  # vol:page
+                    continue
+                if re.match(r"[A-Z][a-z]+ [A-Z]{1,2}[,;]?$", seg):  # "Author I"
+                    continue
+                # Accept: starts with capital, contains at least one lowercase word
+                if re.match(r"[A-Z]", seg) and re.search(r"\b[a-z]{3,}\b", seg):
+                    title = seg.rstrip(".")
+                    break
+
+        # First author: first capitalized word in the block
         first_author = None
-        am = re.match(r"^\s*[\[(]?\d*[\].)]\s*([A-Z][a-zA-Z\-']+)", block)
+        am = re.match(r"^\s*[\[(]?\d*[\].)]\s*([A-Z][a-zA-Z\-']+)", block_flat)
         if not am:
-            am = re.match(r"^\s*([A-Z][a-zA-Z\-']+)", block)
+            am = re.match(r"^\s*([A-Z][a-zA-Z\-']+)", block_flat)
         if am:
             first_author = am.group(1)
 
@@ -277,13 +312,15 @@ def parse_text(text: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 _STATUSES = {
-    "VERIFIED", "VERIFIED_NO_DOI", "DOI_NOT_FOUND",
-    "METADATA_MISMATCH", "SUSPICIOUS", "NOT_FOUND", "UNVERIFIABLE",
+    "VERIFIED", "VERIFIED_NO_DOI",
+    "PHANTOM", "CHIMERA", "CORRUPTED",
+    "SUSPICIOUS", "NOT_FOUND", "UNVERIFIABLE",
 }
 
-# Thresholds
-_TITLE_MATCH = 0.85
-_TITLE_WEAK = 0.65
+# Thresholds (Topaz et al. 2026 taxonomy)
+_TITLE_MATCH = 0.85   # VERIFIED
+_TITLE_WEAK = 0.65    # SUSPICIOUS
+_TITLE_CHIMERA = 0.50 # below this with a given DOI → CHIMERA
 
 
 def _year_ok(stated: int | None, crossref: int | None, tol: int = 1) -> bool | None:
@@ -301,18 +338,26 @@ def _author_ok(stated: str | None, crossref: str | None) -> bool | None:
 
 def compare(stated: dict, found: dict | None, doi_was_given: bool) -> dict:
     """
-    Compute status + flags from stated citation and CrossRef result.
-    Returns a dict with status, flags, and numeric similarity scores.
+    Compute status + flags from stated citation and database result.
+
+    Taxonomy follows Topaz et al. (2026 Lancet) / CITADEL:
+      PHANTOM   — DOI given, not found anywhere (entirely fabricated)
+      CHIMERA   — DOI resolves, title < 50% match (real DOI, fabricated paper)
+      CORRUPTED — DOI resolves, title 50–85% OR metadata wrong (real paper, bad fields)
+      VERIFIED  — DOI resolves, title ≥ 85%, year not contradicted
+      SUSPICIOUS — no-DOI title search, 65–85% match
+      VERIFIED_NO_DOI — no-DOI title search ≥ 85% match
     """
     if found is None:
         if doi_was_given:
             return {
-                "status": "DOI_NOT_FOUND",
+                "status": "PHANTOM",
                 "flags": ["DOI_NOT_FOUND"],
                 "title_similarity": None,
                 "year_match": None,
                 "author_match": None,
                 "confidence": 0.95,
+                "source": None,
             }
         return {
             "status": "NOT_FOUND",
@@ -321,12 +366,14 @@ def compare(stated: dict, found: dict | None, doi_was_given: bool) -> dict:
             "year_match": None,
             "author_match": None,
             "confidence": 0.50,
+            "source": None,
         }
 
     flags: list[str] = []
     ts = title_similarity(stated.get("title"), found.get("title"))
     ym = _year_ok(stated.get("year"), found.get("year"))
     am = _author_ok(stated.get("first_author"), found.get("first_author"))
+    source = found.get("source", "crossref")
 
     if ts < _TITLE_WEAK:
         flags.append("TITLE_MISMATCH")
@@ -337,11 +384,14 @@ def compare(stated: dict, found: dict | None, doi_was_given: bool) -> dict:
 
     if doi_was_given:
         if ts >= _TITLE_MATCH and ym is not False:
-            status, conf = "VERIFIED", round(0.85 + ts * 0.15, 2)
+            status = "VERIFIED"
+            conf = round(0.85 + ts * 0.15, 2)
         elif ts >= _TITLE_WEAK and ym is not False:
             status, conf = "SUSPICIOUS", 0.55
+        elif ts >= _TITLE_CHIMERA:
+            status, conf = "CORRUPTED", 0.80
         else:
-            status, conf = "METADATA_MISMATCH", 0.80
+            status, conf = "CHIMERA", 0.90
     else:
         if ts >= _TITLE_MATCH and ym is not False:
             status, conf = "VERIFIED_NO_DOI", 0.80
@@ -357,7 +407,60 @@ def compare(stated: dict, found: dict | None, doi_was_given: bool) -> dict:
         "year_match": ym,
         "author_match": am,
         "confidence": conf,
+        "source": source,
     }
+
+
+# ---------------------------------------------------------------------------
+# Multi-source title search cascade
+# ---------------------------------------------------------------------------
+
+def _title_search_cascade(title: str, author: str | None, year: int | None,
+                           *, email: str | None, refresh: bool) -> dict | None:
+    """
+    Try CrossRef → OpenAlex → PubMed for title search.
+    Returns the best-matching work dict (with .source field) or None.
+    """
+    _THRESHOLD = 0.35
+
+    # CrossRef
+    try:
+        candidates = _crossref.search_by_title(
+            title, author=author, year=year, email=email, refresh=refresh,
+        )
+        if candidates:
+            best = max(candidates, key=lambda c: title_similarity(title, c.get("title")))
+            if title_similarity(title, best.get("title")) >= _THRESHOLD:
+                best["source"] = "crossref"
+                return best
+    except RuntimeError:
+        pass
+
+    # OpenAlex
+    try:
+        candidates = _openalex.search_by_title(
+            title, author=author, year=year, refresh=refresh,
+        )
+        if candidates:
+            best = max(candidates, key=lambda c: title_similarity(title, c.get("title")))
+            if title_similarity(title, best.get("title")) >= _THRESHOLD:
+                return best  # source already set to "openalex"
+    except RuntimeError:
+        pass
+
+    # PubMed
+    try:
+        candidates = _pubmed.search_by_title(
+            title, author=author, year=year, refresh=refresh,
+        )
+        if candidates:
+            best = max(candidates, key=lambda c: title_similarity(title, c.get("title")))
+            if title_similarity(title, best.get("title")) >= _THRESHOLD:
+                return best  # source already set to "pubmed"
+    except RuntimeError:
+        pass
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -383,7 +486,7 @@ def validate_citation(citation: dict, *, email: str | None = None,
             # arXiv registers DOIs with DataCite, not CrossRef — verify via arXiv API
             arxiv_id = re.sub(r"(?i)^10\.48550/arXiv\.", "", doi)
             ok = _crossref.check_arxiv(arxiv_id, refresh=refresh)
-            status = "VERIFIED" if ok else ("UNVERIFIABLE" if ok is None else "DOI_NOT_FOUND")
+            status = "VERIFIED" if ok else ("UNVERIFIABLE" if ok is None else "PHANTOM")
             return {
                 "key": citation.get("key"),
                 "status": status,
@@ -393,27 +496,22 @@ def validate_citation(citation: dict, *, email: str | None = None,
                 "stated_doi": doi,
                 "stated_year": year,
                 "stated_first_author": first_author,
-                "crossref_title": None,
-                "crossref_doi": doi if ok else None,
-                "crossref_year": None,
-                "crossref_first_author": None,
+                "db_title": None,
+                "db_doi": doi if ok else None,
+                "db_year": None,
+                "db_first_author": None,
                 "title_similarity": None,
                 "year_match": None,
                 "author_match": None,
+                "source": "arxiv" if ok else None,
                 "notes": "verified via arXiv API" if ok else "arXiv DOI; not in CrossRef",
             }
         if doi:
             found = _crossref.lookup_doi(doi, email=email, refresh=refresh)
         elif title:
-            candidates = _crossref.search_by_title(
-                title, author=first_author, year=year,
-                email=email, refresh=refresh,
+            found = _title_search_cascade(
+                title, first_author, year, email=email, refresh=refresh,
             )
-            if candidates:
-                best = max(candidates,
-                           key=lambda c: title_similarity(title, c.get("title")))
-                if title_similarity(title, best.get("title")) > 0.35:
-                    found = best
     except RuntimeError as e:
         error = str(e)
 
@@ -427,10 +525,11 @@ def validate_citation(citation: dict, *, email: str | None = None,
             "stated_doi": doi,
             "stated_year": year,
             "stated_first_author": first_author,
-            "crossref_title": None,
-            "crossref_doi": None,
-            "crossref_year": None,
-            "crossref_first_author": None,
+            "db_title": None,
+            "db_doi": None,
+            "db_year": None,
+            "db_first_author": None,
+            "source": None,
             "title_similarity": None,
             "year_match": None,
             "author_match": None,
@@ -448,10 +547,11 @@ def validate_citation(citation: dict, *, email: str | None = None,
         "stated_doi": doi,
         "stated_year": year,
         "stated_first_author": first_author,
-        "crossref_title": (found or {}).get("title"),
-        "crossref_doi": (found or {}).get("doi"),
-        "crossref_year": (found or {}).get("year"),
-        "crossref_first_author": (found or {}).get("first_author"),
+        "db_title": (found or {}).get("title"),
+        "db_doi": (found or {}).get("doi"),
+        "db_year": (found or {}).get("year"),
+        "db_first_author": (found or {}).get("first_author"),
+        "source": cmp.get("source"),
         "title_similarity": cmp.get("title_similarity"),
         "year_match": cmp.get("year_match"),
         "author_match": cmp.get("author_match"),
@@ -466,8 +566,8 @@ def validate_citation(citation: dict, *, email: str | None = None,
 _COLUMNS = [
     "key", "status", "flags", "confidence",
     "stated_title", "stated_doi", "stated_year", "stated_first_author",
-    "crossref_title", "crossref_doi", "crossref_year", "crossref_first_author",
-    "title_similarity", "year_match", "author_match", "notes",
+    "db_title", "db_doi", "db_year", "db_first_author",
+    "source", "title_similarity", "year_match", "author_match", "notes",
 ]
 
 

@@ -1,7 +1,7 @@
 """Tests for comparison logic and status assignment (no network required).
 
 Coverage:
-- compare(): VERIFIED, DOI_NOT_FOUND, METADATA_MISMATCH, SUSPICIOUS,
+- compare(): VERIFIED, PHANTOM, CHIMERA, CORRUPTED, SUSPICIOUS,
              VERIFIED_NO_DOI, NOT_FOUND
 - flags: TITLE_MISMATCH, YEAR_MISMATCH, AUTHOR_MISMATCH, DOI_NOT_FOUND
 - year tolerance (±1)
@@ -119,14 +119,15 @@ def test_verified_minor_title_difference():
     assert result["status"] in {"VERIFIED", "SUSPICIOUS"}
 
 
-def test_doi_not_found():
-    result = compare(_stated(doi="10.0000/fake"), None, doi_was_given=True)
-    assert result["status"] == "DOI_NOT_FOUND"
+def test_phantom_doi_not_found():
+    result = compare(_stated(doi="10.0000/fake.99999"), None, doi_was_given=True)
+    assert result["status"] == "PHANTOM"
     assert "DOI_NOT_FOUND" in result["flags"]
     assert result["confidence"] > 0.90
 
 
-def test_metadata_mismatch_completely_different_title():
+def test_chimera_completely_different_title():
+    """Real DOI but title completely unrelated — borrowed DOI, fabricated paper."""
     stated = _stated(
         title="A Completely Wrong Title That Does Not Match The Real Paper At All",
         year=2011,
@@ -136,11 +137,25 @@ def test_metadata_mismatch_completely_different_title():
         year=2011,
     )
     result = compare(stated, found, doi_was_given=True)
-    assert result["status"] == "METADATA_MISMATCH"
+    assert result["status"] == "CHIMERA"
     assert "TITLE_MISMATCH" in result["flags"]
 
 
-def test_metadata_mismatch_year_flag():
+def test_corrupted_partial_title_match():
+    """DOI resolves, title partially matches — real paper, bad metadata."""
+    stated = _stated(
+        title="Impact of Multifunctional Genes on Analysis",  # abbreviated/corrupted title
+        year=2011,
+    )
+    found = _found(
+        title="The Impact of Multifunctional Genes on Guilt by Association Analysis",
+        year=2011,
+    )
+    result = compare(stated, found, doi_was_given=True)
+    assert result["status"] in {"CORRUPTED", "SUSPICIOUS", "VERIFIED"}
+
+
+def test_metadata_year_flag():
     stated = _stated(
         title="The Impact of Multifunctional Genes on Guilt by Association Analysis",
         year=2005,  # wrong year
