@@ -1,0 +1,8 @@
+{
+  "sample_doi": "10.9999/test.fixture.2024.001",
+  "sample_title": "Sample Paper Title",
+  "sample_n_pages": 2,
+  "annotated_n_annotations": 2,
+  "annotated_highlight_text": "This sentence should be highlighted.",
+  "annotated_note_content": "This is a sticky note comment."
+}

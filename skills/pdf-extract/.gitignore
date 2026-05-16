@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+*.extracted.json
+*.metadata.json
+*.text.json
+*.annotations.json
+*.meta.json
+*.txt
+!tests/
