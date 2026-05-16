@@ -1,0 +1,11 @@
+{
+  "artifact": "output.tsv",
+  "sha256": "e74d8f5794f997d494c888242a69523b79143eb8c3570370b80dad2f61c59ff2",
+  "stamped_at": "2026-05-01T14:25:00Z",
+  "fetched_at": "2026-05-01T14:23:00Z",
+  "source_url": "https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene2go.gz",
+  "doi": "10.1093/nar/gkv1145",
+  "data_version": "2026-05-01",
+  "params": {"species": "human", "aspect": "BP"},
+  "tool_version": "0.1.0"
+}

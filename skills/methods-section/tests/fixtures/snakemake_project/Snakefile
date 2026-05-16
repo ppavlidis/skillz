@@ -1,0 +1,7 @@
+rule all:
+    input: "results/output.tsv"
+
+rule process:
+    input: "data/raw.tsv"
+    output: "results/output.tsv"
+    shell: "python scripts/process.py {input} {output}"

@@ -1,0 +1,9 @@
+name: analysis
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.10.0
+  - pandas=2.0.3
+  - snakemake=7.32.4
+  - samtools=1.17
