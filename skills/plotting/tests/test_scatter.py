@@ -193,7 +193,8 @@ def test_categorical_color_legend():
     ax = pavlab_scatter(x, y, color=labels)
     leg = ax.get_legend()
     assert leg is not None
-    assert len(leg.legend_handles) == 3
+    handles = getattr(leg, "legend_handles", None) or getattr(leg, "legendHandles", [])
+    assert len(handles) == 3
     plt.close("all")
 
 

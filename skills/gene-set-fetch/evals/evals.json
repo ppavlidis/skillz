@@ -6,27 +6,166 @@
       "name": "protein-coding-background-defensible",
       "prompt": "I'm running a GO enrichment analysis on ~800 differentially expressed human genes from a brain bulk RNA-seq experiment. The journal we're targeting is picky about background gene sets — last reviewer dinged us for using a vague 'all human genes' background without saying which database. I need a defensible 'all human protein-coding genes' list where the choice of authority is documented and the file is reproducible (sha256 + version). Save it to /tmp/eval-bg.tsv and tell me what to cite in the methods section.",
       "expected_output": "A protein-coding human gene list (~19-23K rows) saved at /tmp/eval-bg.tsv, with explicit citation of which authority (Ensembl/HGNC/GENCODE) was used and a sha256 / version recorded for reproducibility. Bonus for using protein_coding_human_strict (Ensembl ∩ HGNC ∩ GENCODE).",
+      "assertions": [
+        {
+          "text": "fetches protein-coding genes from a live source via the skill scripts (not from training data)",
+          "type": "llm"
+        },
+        {
+          "text": "saves a TSV to /tmp/eval-bg.tsv and reports the row count (~18,000–22,000)",
+          "type": "llm"
+        },
+        {
+          "text": "provides provenance: names the specific database(s) used (Ensembl, HGNC, or GENCODE) and ideally the version/release",
+          "type": "llm"
+        },
+        {
+          "text": "provides a methods-section sentence or citation the user can paste into a manuscript",
+          "type": "llm"
+        }
+      ],
       "files": []
     },
     {
       "id": 1,
       "name": "mouse-protein-coding-strict",
       "prompt": "For my mouse single-cell paper, my PI asked specifically for 'the conservative set of mouse protein-coding genes — where Ensembl, MGI, and GENCODE all agree'. She wants this to be reproducible because she's been bitten before by gene-list drift. Get me the list, save it to /tmp/eval-mpc.tsv, and write a methods-section sentence I can paste into the manuscript.",
-      "expected_output": "A mouse protein-coding gene list (~21K rows) saved at /tmp/eval-mpc.tsv, derived from the three-way intersection of Ensembl, MGI, and GENCODE, with a methods-section sentence citing all three authorities and the version/release used.",
+      "expected_output": "A mouse protein-coding gene list saved at /tmp/eval-mpc.tsv, derived from the three-way intersection of Ensembl, MGI, and GENCODE (protein_coding_mouse_strict), with a methods-section sentence citing all three authorities and the version/release used.",
+      "assertions": [
+        {
+          "text": "uses the three-way intersection of Ensembl, MGI, and GENCODE — not just one source",
+          "type": "llm"
+        },
+        {
+          "text": "saves a TSV to /tmp/eval-mpc.tsv",
+          "type": "llm"
+        },
+        {
+          "text": "reports the gene count and all three source authorities",
+          "type": "llm"
+        },
+        {
+          "text": "produces a methods-section sentence citing Ensembl, MGI, and GENCODE with version details",
+          "type": "llm"
+        }
+      ],
       "files": []
     },
     {
       "id": 2,
-      "name": "tf-union-with-broken-source",
+      "name": "tf-union-fail-loud",
       "prompt": "I'm doing a TF target prediction analysis and I want to use the most inclusive set of human transcription factors I can — basically every gene that any major TF database considers a TF. Specifically: the UNION of Lambert 2018 and AnimalTFDB human TFs. Save the list to /tmp/eval-tfunion.tsv. If you hit any issues, tell me about them; don't just hand me a partial list silently.",
-      "expected_output": "Should report cleanly that AnimalTFDB is currently broken upstream (JS challenge / DNS / etc.) and explain the impact. Either (a) refuses to produce a partial list and explains, or (b) explicitly proposes falling back to Lambert-only with that decision called out. Should NOT silently fabricate or claim success.",
+      "expected_output": "Either succeeds and saves the union TSV with count and dual-source provenance, or if one source fails it reports the failure clearly and explicitly — does NOT silently return a partial list. Should tell the user exactly what went wrong and which source failed.",
+      "assertions": [
+        {
+          "text": "either successfully fetches the union of both Lambert 2018 and AnimalTFDB, OR clearly reports which source failed — does not silently hand over a partial list",
+          "type": "llm"
+        },
+        {
+          "text": "if successful: saves a TSV to /tmp/eval-tfunion.tsv and reports a count larger than Lambert alone (~1639)",
+          "type": "llm"
+        },
+        {
+          "text": "mentions both Lambert 2018 and AnimalTFDB as intended sources",
+          "type": "llm"
+        }
+      ],
       "files": []
     },
     {
       "id": 3,
       "name": "quick-tf-list-casual",
       "prompt": "quick — i need a list of human TFs from lambert 2018 for a slide deck tomorrow. just save it somewhere i can grep it. like 5 minutes of work",
-      "expected_output": "A Lambert 2018 human TF list (~1637 rows) saved to a sensible path, with at least a brief mention of the source / version so the slide deck is citation-ready. Tests whether the skill triggers on casual phrasing.",
+      "expected_output": "A Lambert 2018 human TF list saved to a sensible path, with at least a brief mention of the source so the slide deck is citation-ready. Tests whether the skill triggers on casual phrasing.",
+      "assertions": [
+        {
+          "text": "fetches the Lambert 2018 TF list via the skill scripts (not from training knowledge)",
+          "type": "llm"
+        },
+        {
+          "text": "saves to a file and reports its path",
+          "type": "llm"
+        },
+        {
+          "text": "reports a gene count consistent with Lambert 2018 (~1400–1900 human TFs)",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "disease-genes-parkinson",
+      "prompt": "Give me genes associated with Parkinson disease from a curated database. I want high-confidence associations — filter to the strongest ones. Save the list.",
+      "expected_output": "Calls query.py disease 'Parkinson disease' via Open Targets (or similar curated DB) with a score filter, saves a TSV, and the result includes well-known Parkinson genes (LRRK2, SNCA, PINK1, PRKN). Must use a curated database — not a literature search.",
+      "assertions": [
+        {
+          "text": "queries a curated disease-gene database (Open Targets, GWAS Catalog, or OMIM) — not answering from training knowledge or summarizing papers",
+          "type": "llm"
+        },
+        {
+          "text": "includes well-known Parkinson disease genes: LRRK2 and/or SNCA and/or PINK1 and/or PRKN",
+          "type": "llm"
+        },
+        {
+          "text": "applies a confidence or score filter and reports the resulting count",
+          "type": "llm"
+        },
+        {
+          "text": "saves the gene list to a TSV file",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "gwas-schizophrenia",
+      "prompt": "What genes are implicated in schizophrenia by GWAS studies? Save the list.",
+      "expected_output": "Calls query.py disease 'schizophrenia' --source gwas_catalog (GWAS-specific phrasing should trigger gwas_catalog), saves a TSV, notes that GWAS associations are not necessarily causal. Should return at least tens of genes.",
+      "assertions": [
+        {
+          "text": "queries GWAS Catalog or another live GWAS database — not answering from training data alone",
+          "type": "llm"
+        },
+        {
+          "text": "saves the gene list to a file",
+          "type": "llm"
+        },
+        {
+          "text": "reports a plausible number of GWAS-implicated genes for schizophrenia (at least 20)",
+          "type": "llm"
+        },
+        {
+          "text": "notes that GWAS associations are not necessarily causal — these are locus-tagged genes",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "head-to-head-chr6",
+      "prompt": "I'm studying bidirectional promoters on chromosome 6. Give me all human protein-coding gene pairs that are head-to-head — transcribed in opposite directions from nearby TSSs — on chromosome 6.",
+      "expected_output": "Calls query.py genomic head_to_head --chromosome 6. Returns ~87 pairs (~166 unique genes), saves a TSV with partner gene columns. Should explain what head-to-head means and cite Ensembl as the coordinate source.",
+      "assertions": [
+        {
+          "text": "uses Ensembl genomic coordinates to compute head-to-head pairs — does not answer from training knowledge",
+          "type": "llm"
+        },
+        {
+          "text": "restricts the query to chromosome 6",
+          "type": "llm"
+        },
+        {
+          "text": "reports a plausible number of pairs for a single chromosome (at least 20 pairs)",
+          "type": "llm"
+        },
+        {
+          "text": "saves a TSV that includes both genes in each pair (partner_ensembl_id and/or partner_symbol columns)",
+          "type": "llm"
+        }
+      ],
       "files": []
     }
   ]

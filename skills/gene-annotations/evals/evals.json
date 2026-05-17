@@ -1,0 +1,232 @@
+{
+  "skill_name": "gene-annotations",
+  "evals": [
+    {
+      "id": 0,
+      "name": "naturalistic-functional-question-negative",
+      "prompt": "does human GRIN1 have an annotated function relating to carbohydrate synthesis?",
+      "expected_output": "The preferred approach is ontology-first: (1) use ontology search/lookup to find GO terms for 'carbohydrate biosynthetic process' or 'carbohydrate synthesis' (e.g. GO:0016051 and its children), (2) collect the full set of descendant GO terms, then (3) intersect that set with GRIN1's propagated annotations. An acceptable fallback is to fetch all GRIN1 annotations and search for carbohydrate-related terms in the results. Either way the answer is 'no'. Must cite a provenance source (QuickGO or similar) and NOT hallucinate annotations.",
+      "assertions": [
+        {
+          "text": "answers 'no' — no carbohydrate synthesis annotations found",
+          "type": "llm"
+        },
+        {
+          "text": "cites an authoritative source (QuickGO, GOA, or similar) rather than answering from training data alone",
+          "type": "llm"
+        },
+        {
+          "text": "does not hallucinate carbohydrate or glycan GO terms for GRIN1",
+          "type": "llm"
+        },
+        {
+          "text": "uses an ontology-aware approach — either (a) looks up carbohydrate synthesis GO terms first and intersects with GRIN1 annotations, or (b) fetches GRIN1 annotations and searches for carbohydrate-related GO terms by ID/label rather than hallucinating from training",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "gene-to-terms-evidence-codes",
+      "prompt": "I'm reviewing a paper that claims TP53 is involved in DNA repair based on GO annotations. Can you verify this and tell me what evidence codes back it up? I want to know if there's experimental evidence or just computational inference.",
+      "expected_output": "Invokes annotations_of_gene on TP53 (human), finds DNA repair-related GO biological process terms, and reports the evidence codes (IDA, IMP, EXP = experimental; IEA = electronic inference). Should distinguish experimental from inferred evidence. Should include a count of matching annotations and ideally list specific GO terms like GO:0006281 (DNA repair) or similar.",
+      "assertions": [
+        {
+          "text": "confirms TP53 has GO annotations related to DNA repair",
+          "type": "llm"
+        },
+        {
+          "text": "reports at least one evidence code (e.g. IDA, IMP, TAS, IEA) for the DNA repair annotations",
+          "type": "llm"
+        },
+        {
+          "text": "distinguishes experimental evidence from computational inference (or at least mentions evidence codes)",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "term-to-genes-with-propagation",
+      "prompt": "For a GO enrichment analysis I'm setting up, I need a list of human genes in the apoptosis biological process. I want child terms included — genes annotated specifically to 'intrinsic apoptosis' or 'caspase activation' should count too. Please save the list somewhere I can use it and tell me how many genes there are.",
+      "expected_output": "Invokes genes_with_annotation on GO:0006915 (apoptotic process) with propagation enabled (the default), saves a TSV, and reports a gene count. With propagation the count should be in the hundreds (likely 500–3000+ human genes). Should mention that child-term propagation is on. Should NOT return a tiny list suggesting only direct annotations were used.",
+      "assertions": [
+        {
+          "text": "produces a gene list saved to a file (TSV or similar)",
+          "type": "programmatic",
+          "check": "file_exists_and_nonempty"
+        },
+        {
+          "text": "gene count is plausible for propagated apoptosis annotations (≥ 200 human genes)",
+          "type": "llm"
+        },
+        {
+          "text": "mentions that child-term (propagated) annotations are included, or uses propagation by default",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "symbol-resolution-mouse",
+      "prompt": "I'm working with mouse RNA-seq data. What GO molecular function annotations does mouse Tp53 have? I'm specifically curious about DNA binding.",
+      "expected_output": "Invokes annotations_of_gene on Tp53 with --species mouse (or equivalent), returns GO MF annotations, and finds DNA binding (GO:0003677 or similar). Should clearly indicate this is mouse data. Gene symbol should be resolved correctly (mouse Trp53 is the formal symbol for what's commonly called Tp53 in mouse).",
+      "assertions": [
+        {
+          "text": "retrieves mouse (not human) annotations",
+          "type": "llm"
+        },
+        {
+          "text": "finds DNA binding or nucleic acid binding annotations for the gene",
+          "type": "llm"
+        },
+        {
+          "text": "correctly resolves the mouse gene (Trp53 / P02340 or equivalent), not the human one",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "fail-loud-bad-gene",
+      "prompt": "Get me the GO annotations for human gene FAKEGENE999.",
+      "expected_output": "Should fail gracefully with a clear error message stating the gene could not be resolved or was not found. Should NOT return empty results silently, and should NOT hallucinate GO annotations for a nonexistent gene.",
+      "assertions": [
+        {
+          "text": "reports that the gene was not found or could not be resolved — does not silently succeed",
+          "type": "llm"
+        },
+        {
+          "text": "does not produce or claim to produce a TSV of GO annotations for FAKEGENE999",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "cross-species-annotation-diff",
+      "prompt": "What's a GO annotation that mouse Grin1 has but human GRIN1 doesn't? And why might that difference exist?",
+      "expected_output": "Fetches human GRIN1 annotations and mouse Grin1 annotations separately, computes the set difference (terms present in mouse but absent in human, or vice versa), names at least one specific GO term that differs, and offers a plausible biological or annotation-curation explanation for the discrepancy. Must use live data, not training knowledge — the answer requires two real fetches and a set comparison. Should report term IDs and labels, not just labels.",
+      "assertions": [
+        {
+          "text": "fetches annotations for both human GRIN1 and mouse Grin1 using a live source (not from training data alone)",
+          "type": "llm"
+        },
+        {
+          "text": "names at least one specific GO term (with ID) that is present in one species but not the other",
+          "type": "llm"
+        },
+        {
+          "text": "offers a plausible explanation for why the difference exists (e.g. species-specific experiment, different curator focus, ortholog annotation gap)",
+          "type": "llm"
+        },
+        {
+          "text": "does not fabricate GO term IDs that do not exist",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "ontology-first-positive",
+      "prompt": "Does human BRCA1 have any GO annotations in the homologous recombination branch? Use the ontology to define the branch first — don't just keyword-search the annotations.",
+      "expected_output": "Performs an ontology-first lookup: (1) searches or looks up the homologous recombination GO term (GO:0000724 or similar), (2) fetches its descendant terms to define the full branch, (3) retrieves BRCA1's propagated annotations, (4) intersects. Should confirm yes — BRCA1 has well-established HR annotations (e.g. GO:0000724 double-strand break repair via homologous recombination). Must name at least one GO term ID, not just answer from training data.",
+      "assertions": [
+        {
+          "text": "explicitly uses an ontology lookup step to identify the homologous recombination GO term and its descendants before checking BRCA1 annotations",
+          "type": "llm"
+        },
+        {
+          "text": "correctly answers yes — BRCA1 has GO annotations in the HR branch",
+          "type": "llm"
+        },
+        {
+          "text": "names at least one specific GO term ID (e.g. GO:0000724 or a descendant) with evidence from live data",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "multi-gene-mf-comparison",
+      "prompt": "I'm studying ionotropic glutamate receptor subunits. Compare the GO molecular function annotations of human GRIN1 (NMDA receptor) and human GRIA1 (AMPA receptor). What MF terms do they share, and what's unique to each? Save the comparison somewhere.",
+      "expected_output": "Fetches MF annotations for both GRIN1 and GRIA1 via live source, computes shared and unique terms, saves a comparison TSV or similar artifact. Both genes should share glutamate receptor activity and ion channel activity terms; GRIN1 should have unique terms like glycine binding or NMDA receptor activity; GRIA1 may have AMPA receptor-specific terms. Must report specific GO term IDs, not just labels.",
+      "assertions": [
+        {
+          "text": "fetches GO molecular function annotations for both GRIN1 and GRIA1 from a live source",
+          "type": "llm"
+        },
+        {
+          "text": "identifies at least one shared MF term between GRIN1 and GRIA1 (e.g. glutamate receptor activity or ion channel activity)",
+          "type": "llm"
+        },
+        {
+          "text": "identifies at least one MF term unique to GRIN1 or unique to GRIA1",
+          "type": "llm"
+        },
+        {
+          "text": "saves a comparison to a file (TSV, CSV, or similar)",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "evidence-filter-experimental-only",
+      "prompt": "For human PTEN, give me only the GO biological process annotations backed by experimental evidence — IDA, IMP, IGI, IEP, IPI, or EXP codes. How many survive compared to the full set? Save the filtered list.",
+      "expected_output": "Fetches all human PTEN GO biological process annotations, filters to experimental evidence codes (IDA, IMP, IGI, IEP, IPI, EXP), reports counts for filtered vs total, and saves a TSV. The experimental-only set should be substantially smaller than the full propagated set (which includes IEA/ISS/ISO/IBA). Should name specific evidence codes found, not just assert 'experimental'.",
+      "assertions": [
+        {
+          "text": "fetches human PTEN GO biological process annotations from a live source",
+          "type": "llm"
+        },
+        {
+          "text": "correctly filters to experimental evidence codes (IDA, IMP, IGI, IEP, IPI, EXP) — not including IEA, ISS, ISO, IBA",
+          "type": "llm"
+        },
+        {
+          "text": "reports the count of experimental-evidence annotations vs the total, showing the filtered set is a subset",
+          "type": "llm"
+        },
+        {
+          "text": "saves the filtered annotation list to a file",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 9,
+      "name": "compose-annotation-then-ancestry",
+      "prompt": "What is the most specific GO biological process term that human INS (insulin) is directly annotated to — not via propagation, direct only? Then trace that term's path up to the biological process root (GO:0008150) and show the full ancestry chain.",
+      "expected_output": "Two-step composition: (1) runs annotations_of_gene on INS with --direct flag to get only directly annotated BP terms, identifies the most specific one (deepest in the GO hierarchy); (2) uses ontology-terms to trace ancestors of that term up to GO:0008150. Should report the term ID + label at each level of the ancestry chain. This requires using both the gene-annotations and ontology-terms skills.",
+      "assertions": [
+        {
+          "text": "fetches direct-only (not propagated) GO biological process annotations for human INS from a live source",
+          "type": "llm"
+        },
+        {
+          "text": "identifies a specific, reasonably deep GO BP term as the most specific direct annotation (not a top-level term like GO:0008150 itself)",
+          "type": "llm"
+        },
+        {
+          "text": "traces the ancestry chain from that term up to GO:0008150, naming at least 2 intermediate terms with their IDs",
+          "type": "llm"
+        },
+        {
+          "text": "uses live ontology data for the ancestry trace, not training knowledge alone",
+          "type": "llm"
+        }
+      ],
+      "files": []
+    }
+  ]
+}

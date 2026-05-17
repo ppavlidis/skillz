@@ -176,6 +176,25 @@ Every operation writes a TSV with:
   with named sets (e.g. "TFs annotated to apoptosis" = intersect
   `genes_with_annotation GO:0006915` with `tfs_human_lambert2018`).
 
+### Preferred pattern: ontology-first for concept queries
+
+When a user asks "does gene X have a function relating to concept Y?" the
+preferred strategy is **ontology-first**, not keyword search over annotation
+labels:
+
+1. Use `ontology-terms search` to find the GO term(s) for concept Y
+   (e.g. "carbohydrate biosynthetic process" → `GO:0016051`).
+2. Use `ontology-terms children` to collect all descendant terms — this
+   defines the concept precisely including specializations.
+3. Call `annotations_of_gene` on gene X (propagated, the default).
+4. Intersect the gene's annotation term IDs with the descendant set.
+
+This is more complete than keyword-searching annotation labels: a gene
+annotated specifically to "hexose biosynthetic process" (`GO:0019319`,
+a child of carbohydrate biosynthetic process) would be missed by a label
+search for "carbohydrate" but correctly caught by the ontology-first
+intersection.
+
 ## References
 
 - GOA / QuickGO: https://www.ebi.ac.uk/QuickGO/

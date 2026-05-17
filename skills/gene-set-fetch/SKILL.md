@@ -1,21 +1,25 @@
 ---
 name: gene-set-fetch
 description: >
-  Fetches canonical, named gene sets for human and mouse — transcription factors
-  (Lambert 2018, AnimalTFDB), protein-coding genes (Ensembl biotype, with optional
-  strict-intersection against HGNC/MGI and GENCODE), and set-algebra composites
-  (union, intersection) — and writes them as provenance-stamped TSV + sidecar
-  meta JSON files to a user cache. Use this skill whenever a user asks for a list
-  of transcription factors, TFs, protein-coding genes, a "canonical" gene list,
-  Lambert TFs, AnimalTFDB, or any named gene set where reproducibility and
-  source provenance matter — including phrasings like "give me mouse TFs",
-  "I need the protein-coding genes for human", "what's the intersection of
-  Lambert and AnimalTFDB", "list of all mouse protein-coding genes from Ensembl",
-  or "background set of human protein-coding genes for enrichment". Distinct from
-  the `gget` skill: gget answers "tell me about *this gene*", gene-set-fetch
-  answers "give me *the list of genes in this category*". Skills compose — this
-  skill calls `gget` internally for Ensembl-side queries rather than
-  reimplementing them.
+  Fetches canonical, named gene sets and ad-hoc parameterized gene sets for
+  human and mouse, writing provenance-stamped TSV + sidecar meta JSON to a
+  user cache. Named sets (fetch.py): transcription factors (Lambert 2018,
+  AnimalTFDB), protein-coding genes (Ensembl biotype or strict three-way
+  intersection). Ad-hoc queries (query.py): (1) disease-gene associations —
+  "genes associated with Parkinson disease" via Open Targets (default, free,
+  broad), GWAS Catalog (GWAS hits only), or OMIM (Mendelian, key required);
+  do NOT use literature search for these; (2) genomic structural features —
+  "genes with head-to-head / bidirectional promoter arrangements on chromosome
+  6" via Ensembl BioMart. Use this skill whenever a user asks for a list of
+  genes in some category — TFs, protein-coding, "genes associated with disease
+  X", "genes arranged head-to-head on chromosome Y", Lambert TFs, AnimalTFDB,
+  or any named gene set where reproducibility and source provenance matter.
+  Phrasings include: "give me mouse TFs", "human protein-coding genes",
+  "genes linked to type 2 diabetes", "GWAS hits for schizophrenia",
+  "head-to-head gene pairs on chr6", "bidirectionally transcribed genes".
+  Distinct from gget (gene-centric lookups) and gene-annotations (GO term
+  annotations). Do NOT use literature search or PubMed text-mining for
+  disease-gene sets — if the association isn't in a curated database, say so.
 ---
 
 # gene-set-fetch
@@ -48,18 +52,36 @@ URL was hit, which columns were parsed, and which filters were applied.
 Trigger this skill for any request that means "produce *the list* of genes in
 some named category", including:
 
+**Named sets (use `fetch.py`):**
 - "get me [the | a list of] mouse TFs"
 - "give me human protein-coding genes" / "the protein-coding background"
 - "Lambert TFs" / "Lambert 2018"
 - "AnimalTFDB mouse" / "AnimalTFDB transcription factors"
 - "intersection of Lambert and AnimalTFDB" / "TFs in both Lambert and AnimalTFDB"
-- "strict protein-coding" (meaning: only genes called protein-coding by
-  Ensembl, HGNC/MGI, *and* GENCODE)
+- "strict protein-coding" (Ensembl ∩ HGNC/MGI ∩ GENCODE)
 - "the mouse orthologs of Lambert human TFs"
 
-Do **not** trigger for "tell me about gene X" or "what does ENSG00000034713 do"
-— that's the [`gget`](../gget/SKILL.md) skill. gene-set-fetch is set-centric;
-gget is gene-centric.
+**Ad-hoc disease-gene sets (use `query.py disease`):**
+- "genes associated with Parkinson disease"
+- "GWAS hits for schizophrenia" / "genes linked to type 2 diabetes"
+- "what genes are implicated in Huntington's disease"
+- "gene list for OMIM disease XXXXXX"
+- Phrases: "disease genes", "genes implicated in", "genes associated with",
+  "genes linked to", "GWAS genes for"
+
+**Ad-hoc genomic structural sets (use `query.py genomic`):**
+- "head-to-head gene pairs" / "bidirectionally transcribed genes"
+- "genes with divergent promoters on chromosome 6"
+- "which genes on chr6 are arranged head-to-head"
+- Phrases: "head-to-head", "bidirectional promoter", "divergently transcribed"
+
+**Do NOT trigger for:**
+- "tell me about gene X" — that's [`gget`](../gget/SKILL.md)
+- Gene-to-GO-term annotation lookups — that's [`gene-annotations`](../gene-annotations/SKILL.md)
+- Disease-gene queries answered by literature search / PubMed text-mining —
+  if it isn't in a curated database (Open Targets, GWAS Catalog, OMIM), report
+  that and stop. Do not fall back to summarizing papers.
+- Protein-protein interaction neighbors — scope-limited by design (see Future section)
 
 ## The set catalog
 
@@ -86,10 +108,46 @@ Set algebra joins on `ensembl_id`, normalized to a single Ensembl release
 
 ## How to use it
 
-The skill provides one CLI:
+Two CLIs:
 
+**Named sets:**
 ```bash
 python scripts/fetch.py <set_name> [--ensembl-release N] [--refresh] [--out PATH] [--format tsv|json]
+python scripts/fetch.py --list   # show all available set names
+```
+
+**Ad-hoc parameterized queries:**
+```bash
+python scripts/query.py disease <term> [--source open_targets|gwas_catalog|omim]
+                                       [--species human|mouse]
+                                       [--min-score FLOAT]
+                                       [--out PATH] [--refresh]
+
+python scripts/query.py genomic head_to_head [--species human|mouse]
+                                              [--chromosome CHR]
+                                              [--max-distance N]
+                                              [--out PATH] [--refresh]
+```
+
+Examples:
+```bash
+# Disease-gene: genes associated with Parkinson disease (Open Targets, all evidence)
+python scripts/query.py disease "Parkinson disease"
+
+# GWAS-only hits for schizophrenia
+python scripts/query.py disease "schizophrenia" --source gwas_catalog
+
+# Mendelian: OMIM genes for Huntington's (requires OMIM API key in Keychain)
+python scripts/query.py disease "Huntington disease" --source omim
+
+# High-confidence only (Open Targets association score ≥ 0.5)
+python scripts/query.py disease "type 2 diabetes" --min-score 0.5
+
+# Head-to-head gene pairs on human chromosome 6, within 1 kb
+python scripts/query.py genomic head_to_head --chromosome 6
+
+# All human head-to-head pairs, extended to 2 kb
+python scripts/query.py genomic head_to_head --max-distance 2000
 ```
 
 Behavior:
@@ -174,6 +232,28 @@ Ensembl Compara REST. A planned v0.2 step uses `gget.info` to backfill
 `entrez_id` and normalize symbols to the requested Ensembl release on every
 fetcher's output. At that point `gget` becomes an optional enrichment
 dependency.
+
+## Ad-hoc query sources
+
+### Disease-gene associations
+
+| Source | `--source` flag | Best for | Auth | Coverage |
+|---|---|---|---|---|
+| Open Targets | `open_targets` (default) | Broad disease-gene; aggregates GWAS, pathway, expression, clinical, and other evidence into a single score | None | ~60K diseases; all EFO/MONDO-curated diseases with evidence |
+| GWAS Catalog | `gwas_catalog` | GWAS-hit genes only; complex/polygenic traits; published GWAS studies | None | ~5K traits; only traits with indexed GWAS studies |
+| OMIM | `omim` | Mendelian (single-gene) rare disease; highest precision for causal genes | Free API key (Keychain) | ~7K phenotype entries |
+
+The key boundary: **do not use literature search** (PubMed, text-mining, summarizing papers) as a substitute for these databases. If none of the three sources have a gene-disease association, that is the answer — not a prompt to read papers.
+
+Scores (Open Targets only): range 0–1 across all evidence types; 0.5+ is a useful threshold for well-supported associations; use `--min-score` to filter.
+
+### Genomic structural features
+
+| Feature | `genomic` arg | Definition | Source |
+|---|---|---|---|
+| `head_to_head` | `head_to_head` | Two protein-coding genes on opposite strands with TSSs ≤ `--max-distance` bp apart (default 1 kb). These share or nearly share a promoter region. | Ensembl BioMart (protein-coding gene coordinates) |
+
+Output for `head_to_head` includes the paired gene columns (`partner_ensembl_id`, `partner_symbol`, `tss_distance`) so users can filter by either member of each pair or compute downstream statistics.
 
 ## Design contract (read this before extending)
 
