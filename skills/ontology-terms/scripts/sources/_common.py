@@ -35,9 +35,28 @@ USER_AGENT = (
     f"+contact via repo issues)"
 )
 
-# Term-prefix → OBO ontology slug. Used for --ontology auto inference.
-# Add as needed when new ontologies come up in lab use.
-PREFIX_TO_ONTOLOGY = {
+OBO_BASE = "http://purl.obolibrary.org/obo/"
+
+# ---------------------------------------------------------------------------
+# Ontology registry
+#
+# Two tables cover the two URI worlds that appear in practice:
+#
+#   PREFIX_TO_ONTOLOGY  — OBO Foundry ontologies (URI = OBO_BASE + PREFIX_ID).
+#                         The slug is used as the OLS ontology path component
+#                         and as the --ontology value.
+#
+#   _NON_OBO_URIS       — Ontologies that do NOT use OBO PURL URIs. Each entry
+#                         maps an uppercase prefix → (slug, uri_template, uri_regex).
+#                         uri_template has a {num} placeholder (zero-padded to 7).
+#                         uri_regex must capture the numeric ID as group(1).
+#
+# Sources that construct URIs from compact IDs check _NON_OBO_URIS first, then
+# fall back to the OBO PURL pattern for everything in PREFIX_TO_ONTOLOGY.
+# ---------------------------------------------------------------------------
+
+PREFIX_TO_ONTOLOGY: dict[str, str] = {
+    # Core ontologies used heavily in Gemma
     "GO": "go",
     "MONDO": "mondo",
     "MP": "mp",
@@ -45,19 +64,51 @@ PREFIX_TO_ONTOLOGY = {
     "CL": "cl",
     "UBERON": "uberon",
     "DOID": "doid",
-    "EFO": "efo",
     "CHEBI": "chebi",
     "PR": "pr",
-    "SO": "so",
+    "OBI": "obi",
+    # Phenotype / anatomy
     "PATO": "pato",
+    "EMAPA": "emapa",
+    "MA": "ma",
+    "ZFA": "zfa",
+    "FBBT": "fbbt",
+    "WBBT": "wbbt",
+    "NBO": "nbo",
+    "SYMP": "symp",
+    # Sequence / genomics
+    "SO": "so",
+    "OBA": "oba",
+    # Taxonomy
     "NCBITAXON": "ncbitaxon",
+    # Relations / upper-level
+    "RO": "ro",
+    "BFO": "bfo",
+    "IAO": "iao",
+    "OGMS": "ogms",
 }
 
-OBO_BASE = "http://purl.obolibrary.org/obo/"
+# Ontologies whose canonical URIs are NOT OBO PURLs.
+# Format: UPPERCASE_PREFIX -> (ols_slug, uri_template, uri_regex)
+#   uri_template:  receives int(num) via .format(num=...)
+#   uri_regex:     must match the full URI and capture the numeric ID as group(1)
+_NON_OBO_URIS: dict[str, tuple[str, str, re.Pattern]] = {
+    "EFO": (
+        "efo",
+        "http://www.ebi.ac.uk/efo/EFO_{num:07d}",
+        re.compile(r"^https?://www\.ebi\.ac\.uk/efo/EFO_(\d+)$"),
+    ),
+}
+
+# Combined slug lookup (non-OBO entries take precedence for URI construction).
+_ALL_PREFIXES: dict[str, str] = {
+    **PREFIX_TO_ONTOLOGY,
+    **{p: info[0] for p, info in _NON_OBO_URIS.items()},
+}
 
 
 # ---------------------------------------------------------------------------
-# Term notation: compact (GO:0006915) <-> URI (http://purl.obolibrary.org/obo/GO_0006915)
+# Term notation: compact (GO:0006915) <-> URI
 # ---------------------------------------------------------------------------
 
 _COMPACT_RE = re.compile(r"^([A-Za-z]+):(\d+)$")
@@ -79,53 +130,80 @@ class TermFormatError(ValueError):
 
 
 def to_uri(term: str) -> str:
-    """Compact ID or URI -> URI. Raises TermFormatError on unparseable input."""
+    """Compact ID or URI -> canonical URI.
+
+    Checks _NON_OBO_URIS first (e.g. EFO uses EBI URIs, not OBO PURLs),
+    then falls back to the OBO PURL pattern for all other prefixes.
+    Raises TermFormatError on unparseable input.
+    """
     if is_uri(term):
         return term
     m = _COMPACT_RE.match(term)
     if not m:
-        raise TermFormatError(f"unparseable term: {term!r}; expected GO:0006915 or full OBO URI")
-    prefix, num = m.group(1), m.group(2)
+        raise TermFormatError(f"unparseable term: {term!r}; expected GO:0006915 or full URI")
+    prefix, num = m.group(1).upper(), m.group(2)
+    if prefix in _NON_OBO_URIS:
+        _, uri_template, _ = _NON_OBO_URIS[prefix]
+        return uri_template.format(num=int(num))
     return f"{OBO_BASE}{prefix}_{num}"
 
 
 def to_compact(term: str) -> str:
-    """URI -> compact ID. Pass-through if already compact. Raises TermFormatError
-    if it's a URI that doesn't match the OBO Library purl pattern (e.g. EFO,
-    internal Gemma URIs). Callers that want best-effort conversion should
-    catch TermFormatError and fall back to a derived form."""
+    """URI -> compact ID. Pass-through if already compact.
+
+    Handles both OBO PURL URIs and known non-OBO URIs (e.g. EFO).
+    Raises TermFormatError for unrecognised URI patterns; callers that want
+    best-effort conversion should catch and fall back.
+    """
     if is_compact(term):
         return term
     m = _URI_RE.match(term)
-    if not m:
-        raise TermFormatError(
-            f"URI not in OBO purl form: {term!r}; expected http://purl.obolibrary.org/obo/GO_0006915"
-        )
-    prefix, num = m.group(1), m.group(2)
-    return f"{prefix}:{num}"
+    if m:
+        return f"{m.group(1)}:{m.group(2)}"
+    for prefix, (_, _, uri_re) in _NON_OBO_URIS.items():
+        m2 = uri_re.match(term)
+        if m2:
+            return f"{prefix}:{m2.group(1)}"
+    raise TermFormatError(
+        f"URI not in a recognised form: {term!r}\n"
+        f"  Supported: OBO PURL (purl.obolibrary.org/obo/PREFIX_ID) and "
+        f"known non-OBO patterns ({list(_NON_OBO_URIS)})"
+    )
 
 
 def infer_ontology(term: str) -> str:
-    """Auto-infer ontology slug from a term's prefix. die()s if unknown
-    (this IS the user-visible boundary — called by the CLI dispatcher)."""
+    """Auto-infer ontology slug from a term's prefix.
+
+    For prefixes not in the registry, warns and falls back to prefix.lower()
+    (which OLS and Gemma often accept). The caller can pass --ontology
+    explicitly to override.
+    """
     if is_uri(term):
         try:
             compact = to_compact(term)
         except TermFormatError:
-            die(f"can't infer ontology from URI: {term!r}; pass --ontology explicitly")
+            # Non-OBO URI: try to extract prefix from the path tail
+            m = re.search(r"/([A-Za-z]+)[_:](\d+)$", term)
+            if m:
+                compact = f"{m.group(1)}:{m.group(2)}"
+            else:
+                die(f"can't infer ontology from URI: {term!r}; pass --ontology explicitly")
     else:
         compact = term
     m = _COMPACT_RE.match(compact)
     if not m:
         die(f"can't infer ontology from term: {term!r}")
     prefix = m.group(1).upper()
-    ont = PREFIX_TO_ONTOLOGY.get(prefix)
+    ont = _ALL_PREFIXES.get(prefix)
     if ont is None:
-        die(
-            f"unknown ontology prefix {prefix!r} in term {term!r}; "
-            f"pass --ontology explicitly or add the prefix to "
-            f"PREFIX_TO_ONTOLOGY in scripts/sources/_common.py"
+        # Graceful fallback: use prefix.lower() as the slug — works for the
+        # majority of OBO ontologies OLS hosts, even if not in our registry.
+        sys.stderr.write(
+            f"[ontology-terms] prefix {prefix!r} not in registry; "
+            f"using {prefix.lower()!r} as ontology slug. "
+            f"Pass --ontology explicitly if this fails.\n"
         )
+        return prefix.lower()
     return ont
 
 

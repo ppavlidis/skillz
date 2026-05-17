@@ -78,14 +78,29 @@ python scripts/ontology.py search     <query> [--source ols|gemma] [--ontology <
 `MONDO:` → `mondo`, etc.). Pass an explicit ontology slug if the prefix is
 ambiguous or you want to query a different ontology's view of a cross-listed term.
 
+## Supported ontologies
+
+The skill recognises any ontology reachable via OLS or Gemma. The following
+prefixes are in the built-in registry and have URI construction fully handled:
+
+**OBO Foundry (OBO PURL URIs):** GO, MONDO, MP, HP, CL, UBERON, DOID, CHEBI,
+PR, OBI, PATO, EMAPA, MA, ZFA, FBBT, WBBT, NBO, SYMP, SO, OBA, NCBITAXON,
+RO, BFO, IAO, OGMS
+
+**Non-OBO (EBI URIs):** EFO (`http://www.ebi.ac.uk/efo/EFO_XXXXXXX`)
+
+For any other prefix the skill warns and tries `prefix.lower()` as the ontology
+slug — this works for the majority of OLS-hosted ontologies even without an
+explicit registry entry. Pass `--ontology <slug>` to override.
+
 ## Sources
 
 No source is "the default" universally — each has a sweet spot:
 
 | Source | Best for | Coverage | parents/children semantics | Version pinning |
 |---|---|---|---|---|
-| `ols` | general use; parents/children/definition with explicit ontology version | every OBO ontology and many beyond | **immediate only** | yes — version + version IRI recorded per call |
-| `gemma` | lab alignment with Gemma; strong free-text search | ontologies loaded into Gemma (GO, MONDO, MP, HP, CL, UBERON, EFO, …) | **transitive (propagated)** | no per-term version exposed |
+| `ols` | general use; parents/children/definition with explicit ontology version | every OBO ontology and many beyond (including EFO) | **immediate only** | yes — version + version IRI recorded per call |
+| `gemma` | lab alignment with Gemma; strong free-text search across all loaded ontologies | GO, MONDO, MP, HP, CL, UBERON, EFO, OBI, CHEBI, DOID, and others loaded in Gemma | **transitive (propagated)** | no per-term version exposed |
 | `obo` | audit-grade reproducibility; offline use | one OBO ontology per call | **immediate only** | YES — data-version embedded in file; downloaded bytes hashed |
 | `ontobee` | SPARQL flexibility; cross-ontology queries | every OBO Foundry ontology loaded into OntoBee's triplestore | **mix of immediate + some transitive** (depends on what subClassOf assertions exist in the loaded graphs) | partial — "snapshot" but no clean version string |
 

@@ -35,7 +35,8 @@ import urllib.parse
 import pandas as pd
 
 from ._common import (
-    PREFIX_TO_ONTOLOGY,
+    _ALL_PREFIXES,
+    _NON_OBO_URIS,
     SourceInfo,
     TermFormatError,
     die,
@@ -50,22 +51,26 @@ SOURCE_NAME = "gemma"
 GEMMA_BASE = "https://gemma.msl.ubc.ca/rest/v2"
 
 
-_URI_PREFIX_RE = re.compile(r"obo/([A-Za-z]+)_\d+")
-
-
 def _uri_to_ontology_slug(uri: str) -> str:
-    m = _URI_PREFIX_RE.search(uri or "")
-    if not m:
+    """Map a URI back to an ontology slug using the shared registry."""
+    try:
+        compact = to_compact(uri)
+        prefix = compact.split(":")[0].upper()
+        return _ALL_PREFIXES.get(prefix, prefix.lower())
+    except TermFormatError:
+        # Try to extract prefix from the URI path tail as a last resort.
+        m = re.search(r"/([A-Za-z]+)[_:](\d+)$", uri or "")
+        if m:
+            prefix = m.group(1).upper()
+            return _ALL_PREFIXES.get(prefix, prefix.lower())
         return ""
-    return PREFIX_TO_ONTOLOGY.get(m.group(1).upper(), m.group(1).lower())
 
 
 def _uri_to_compact_safe(uri: str) -> str:
+    """URI -> compact ID, never raising. Uses the shared registry (handles EFO etc.)."""
     try:
         return to_compact(uri)
     except TermFormatError:
-        # Non-OBO URI (e.g. EFO at ebi.ac.uk/efo/, internal Gemma). Best-effort:
-        # derive a compact-ish form from the last path segment.
         m = re.search(r"/([A-Za-z]+)[_:](\d+)$", uri or "")
         if m:
             return f"{m.group(1).upper()}:{m.group(2)}"
