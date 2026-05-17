@@ -85,6 +85,13 @@ def title_similarity(a: str | None, b: str | None) -> float:
 _DOI_PREFIX_RE = re.compile(r"^https?://(dx\.)?doi\.org/", re.IGNORECASE)
 _DOI_RE = re.compile(r"\b(10\.\d{4,}/\S+)", re.IGNORECASE)
 
+# Abbreviation periods that should NOT be treated as sentence boundaries when
+# splitting plain-text references into segments for title extraction.
+_ABBREV_PERIOD_RE = re.compile(
+    r"\b(vs|pp|et al|ed|eds|vol|fig|cf|ca|approx|suppl|no|nr|dr|mr|mrs|prof|jr|sr|dept|univ)\.",
+    re.IGNORECASE,
+)
+
 
 _ARXIV_DOI_RE = re.compile(r"^10\.48550/arXiv\.", re.IGNORECASE)
 # Minimum DOI suffix length (after "10.xxxx/") to reject truncated line-wrapped DOIs
@@ -310,9 +317,19 @@ def parse_text(text: str) -> list[dict]:
                 title = tm.group(2).strip().rstrip(".")
 
         # Pattern 3: sentence scan — split on ". " and find the first segment that
-        # looks like a title (≥20 chars, not just author initials or a journal abbrev)
+        # looks like a title (≥20 chars, not just author initials or a journal abbrev).
+        # Protect known abbreviation periods (vs., pp., et al., …) so they don't
+        # produce spurious sentence breaks.
         if not title:
-            sentences = [s.strip() for s in re.split(r"(?<=\.)\s+", block_flat) if s.strip()]
+            _PLACEHOLDER = "\x00"
+            protected = _ABBREV_PERIOD_RE.sub(
+                lambda m: m.group(1) + _PLACEHOLDER, block_flat
+            )
+            sentences = [
+                s.replace(_PLACEHOLDER, ".").strip()
+                for s in re.split(r"(?<=\.)\s+", protected)
+                if s.strip()
+            ]
             for seg in sentences[1:]:  # skip first segment (usually author list / ref number)
                 # Reject: author initials (e.g. "Gillis J"), journal abbreviations
                 # (short all-caps words), volume/page patterns
@@ -335,6 +352,13 @@ def parse_text(text: str) -> list[dict]:
                 if re.match(r"[A-Z]", seg) and re.search(r"[a-z]{3,}", seg):
                     title = seg.rstrip(".")
                     break
+
+        # Strip conference/venue suffixes that leak into extracted titles.
+        # APA/Zotero format: "Title, in: Conference Name" or "Title. Presented at ..."
+        if title:
+            title = re.sub(r",?\s+[Ii]n:\s+.*$", "", title)
+            title = re.sub(r"\.\s+[Pp]resented at\s+.*$", "", title)
+            title = title.rstrip(".,").strip()
 
         # First author: first capitalized word in the block
         first_author = None
@@ -634,9 +658,15 @@ def write_tsv(results: list[dict], path: Path) -> None:
 
 
 def write_meta(results: list[dict], input_path: Path, out_path: Path,
-               email: str | None, format_: str) -> None:
+               email: str | None, format_: str,
+               input_text: str | None = None) -> None:
     import hashlib
-    h = hashlib.sha256(input_path.read_bytes()).hexdigest()
+    if input_path.exists():
+        h = hashlib.sha256(input_path.read_bytes()).hexdigest()
+    elif input_text is not None:
+        h = hashlib.sha256(input_text.encode()).hexdigest()
+    else:
+        h = "unavailable"
     counts: dict[str, int] = {}
     for r in results:
         counts[r["status"]] = counts.get(r["status"], 0) + 1
@@ -703,8 +733,9 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Validate bibliography citations against CrossRef.",
     )
-    parser.add_argument("input", type=Path,
-                        help="bibliography file (.bib, .txt, .md, or -  for stdin)")
+    parser.add_argument("input",
+                        help="bibliography file (.bib, .txt, .md, .pdf), "
+                             "Google Docs URL, or - for stdin")
     parser.add_argument("--format", choices=["bibtex", "text", "auto"],
                         default="auto",
                         help="input format (default: auto-detect from extension)")
@@ -719,14 +750,28 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     # Read input
+    gdocs_url = None
     if str(args.input) == "-":
         text = sys.stdin.read()
         input_path = Path("stdin.txt")
-    else:
-        if not args.input.exists():
-            print(f"ERROR: file not found: {args.input}", file=sys.stderr)
+    elif "docs.google.com" in str(args.input) or re.match(r"^[A-Za-z0-9_\-]{20,}$", str(args.input)):
+        # Google Docs URL or bare document ID
+        gdocs_url = str(args.input)
+        try:
+            import _gdocs
+            text = _gdocs.extract_references(gdocs_url)
+        except Exception as e:
+            print(f"ERROR fetching Google Doc: {e}", file=sys.stderr)
             return 1
-        input_path = args.input
+        import re as _re
+        doc_id = _re.search(r"/document/d/([A-Za-z0-9_\-]+)", gdocs_url)
+        slug = doc_id.group(1)[:20] if doc_id else "gdoc"
+        input_path = Path(f"{slug}.gdoc")
+    else:
+        input_path = Path(args.input)
+        if not input_path.exists():
+            print(f"ERROR: file not found: {input_path}", file=sys.stderr)
+            return 1
         if input_path.suffix.lower() == ".pdf":
             text = _extract_pdf_text(input_path)
         else:
@@ -766,7 +811,8 @@ def main(argv=None) -> int:
     out_path = args.out or input_path.with_suffix("").with_suffix(".validation.tsv")
     write_tsv(results, out_path)
     meta_path = out_path.with_suffix(".meta.json")
-    write_meta(results, input_path, meta_path, args.email, fmt)
+    write_meta(results, input_path, meta_path, args.email, fmt,
+               input_text=text if gdocs_url else None)
 
     print(f"\nReport: {out_path}", file=sys.stderr)
     return 0
