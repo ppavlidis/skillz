@@ -151,6 +151,29 @@ def estimate_label_width(
     return n * fontsize * char_width_per_pt / 6.7 + padding
 
 
+def svg_safe(ax) -> None:
+    """Disable clipping on every artist in `ax` so the saved SVG has
+    no `clipPath` elements.
+
+    Matplotlib's SVG backend wraps each axes' artists in a
+    `<clipPath>` that limits drawing to the axes bbox. Round-tripping
+    an SVG with `<clipPath>` elements through Illustrator's Tiny SVG
+    import drops the clipping ("Clipping will be lost on roundtrip to
+    Tiny") and can subtly distort the result. For architecture
+    figures the clip serves no purpose — everything we draw is
+    already inside the 0..100 box — so disabling it is free.
+
+    Call this once **after** drawing everything, **before**
+    `fig.savefig(...)`.
+    """
+    ax.set_clip_on(False)
+    for artist in (
+        list(ax.patches) + list(ax.lines) + list(ax.texts)
+        + list(ax.collections) + list(ax.images)
+    ):
+        artist.set_clip_on(False)
+
+
 def autosize_columns(
     labels: Iterable[str],
     *,

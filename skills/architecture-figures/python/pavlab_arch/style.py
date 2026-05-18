@@ -16,7 +16,11 @@ def apply_rcparams() -> None:
     `plt.subplots()`.
     """
     plt.rcParams.update({
-        "font.family": ["Helvetica", "Arial", "DejaVu Sans"],
+        # Only fonts a stock macOS / Illustrator install ships with.
+        # Avoid DejaVu Sans (bundled with matplotlib but not present
+        # on most systems) — referenced fonts that aren't installed
+        # trigger a Font Problems dialog on SVG roundtrip.
+        "font.family": ["Helvetica", "Arial", "sans-serif"],
         "svg.fonttype": "none",
         "figure.facecolor": "white",
         "axes.facecolor": "white",

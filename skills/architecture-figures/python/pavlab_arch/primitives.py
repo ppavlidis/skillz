@@ -147,7 +147,14 @@ def stage_box(
         ec = _p.SUBTLE
         radius = 0.02
         lw = 1.8
-        prefix = "⚙  "
+        # No glyph prefix. The earlier ⚙ (U+2699) gear glyph required
+        # a font containing that codepoint (DejaVu Sans / Symbola),
+        # which Illustrator + a stock macOS install don't always have
+        # — it rendered as a missing-glyph tofu in SVG round-trips.
+        # Slate-tinted fill + sharper corners + thinner border already
+        # encode 'deterministic' distinctly enough; legend chip carries
+        # the textual label.
+        prefix = ""
     else:
         fc = _p.tint(color)
         ec = color

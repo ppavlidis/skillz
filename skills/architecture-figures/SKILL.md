@@ -206,6 +206,81 @@ If the band you'd route through doesn't exist, consider whether
 the dependency is real — sometimes the answer is "drop the
 arrow; the order is implicit in the layout."
 
+## SVG round-trip / Illustrator compatibility
+
+Figures get opened in Illustrator (or Inkscape) for the last
+mile — captioning, alignment tweaks, vector polish. The SVG
+must survive that round-trip cleanly. Four gotchas, all caught
+in real review cycles:
+
+### 1. Fonts: only reference what the editor has installed
+
+```python
+plt.rcParams["font.family"] = ["Helvetica", "Arial", "sans-serif"]
+```
+
+Do NOT include `DejaVu Sans` (matplotlib-bundled, absent from a
+stock macOS / Illustrator install — triggers Illustrator's "Font
+Problems" dialog on every open). Generic `"sans-serif"` is a
+safe final fallback because CSS resolves it to whatever the
+editor considers default.
+
+`style.apply_rcparams()` already does this; if you're adding
+your own rcParams, mirror the rule.
+
+### 2. Glyphs: ASCII / common Latin only
+
+Symbols like ⚙ (U+2699 gear), ⚒, ↺, ★ require a font containing
+that codepoint (DejaVu Sans / Symbola / Font Awesome). On a
+stock Mac Illustrator install they render as missing-glyph
+tofu. Encode the meaning via **colour + shape**, OR draw the
+icon as a path:
+
+```python
+# YES — drawn shape, font-independent
+from matplotlib.patches import RegularPolygon
+ax.add_patch(RegularPolygon((cx, cy), numVertices=8, radius=r,
+                            facecolor=SUBTLE, edgecolor='none'))
+
+# NO — depends on the editor having Symbola installed
+ax.text(cx, cy, "⚙", ...)
+```
+
+The `stage_box` helper used to prefix det stages with ⚙ and
+was rewritten to drop the glyph — the slate-tinted fill +
+sharper corners encode "deterministic" cleanly without needing
+a symbol font.
+
+### 3. Strip clipPath wrappers before save — `svg_safe(ax)`
+
+matplotlib's SVG backend wraps each axes' artists in
+`<clipPath>` so drawing stays inside the axes bbox. Illustrator's
+Tiny SVG import warns "Clipping will be lost on roundtrip to
+Tiny" and silently drops the clipping; subtle distortions can
+follow. For architecture/diagram figures the clip serves no
+purpose (everything is inside 0..100), so kill it before save:
+
+```python
+from pavlab_arch.layout import svg_safe
+
+# ... build the figure ...
+svg_safe(ax)                          # disables clipping on all artists
+fig.savefig("fig.svg", format="svg")  # clean SVG, no <clipPath>
+```
+
+`svg_safe` is a one-liner that calls `set_clip_on(False)` on
+every patch / line / text / collection in the axes. Free to
+call multiple times; safe before save.
+
+### 4. `svg.fonttype="none"` is correct
+
+Keeps text as `<text>` elements (editable in Illustrator) rather
+than vector paths. `apply_rcparams()` sets this. The
+alternative — `svg.fonttype="path"` — converts every glyph to a
+path, which sidesteps glyph-missing problems but loses
+editability (every label becomes a non-editable shape). Prefer
+`none` + ASCII-safe glyphs over `path` conversion.
+
 ## Quick start
 
 ```python
