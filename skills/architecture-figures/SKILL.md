@@ -7,7 +7,9 @@ description: >
   `stage_box` (LLM vs deterministic styling, auto-shrinking text),
   `dual_stage_box` (diagonally-split two-colour stage for hybrid
   AI+curator phases — each half carries the matching tint fill and
-  border colour of a normal `stage_box`), `ensemble_proposer`
+  border colour of a normal `stage_box`), `stack_box` (pile of
+  experiments with a ticket on top — for "set + task" work items
+  like ticket queues or evaluation batches), `ensemble_proposer`
   (parallel mini-boxes for "union of two proposers"), `perf_gauge`
   (horizontal F1 bar with optional curator-corrected overlay;
   luminosity-balanced palette), `arrow` (thick arrows, not
@@ -123,6 +125,87 @@ Two complementary mechanisms:
 Both are heuristics — for a final draft, eyeball the rendered
 SVG. But they save the first 80% of overlap whack-a-mole.
 
+## Visual encoding rules (general, not lifecycle-specific)
+
+These came out of repeated review cycles. Internalise them before
+laying out any figure with more than ~4 boxes.
+
+### Colour is by *actor*, not by *layer*
+
+The palette is an actor encoding that applies everywhere in the
+figure: blue = agent/LLM, slate-with-gear = deterministic
+pipeline, amber = curator decision, violet = evaluation, red =
+recuration / loop-back. If a row contains heterogeneous items
+(some agent-driven, some deterministic, some curator), each item
+takes its own actor colour. Do NOT paint a whole row one colour
+because "this row is the X layer" — that conflates ownership.
+
+The legend chips work consistently at every level: the same
+amber chip identifies curator-driven lifecycle stages AND
+curator-flavoured tickets in a cross-cutting layer. If a viewer
+has to learn two meanings for the same colour, you've broken the
+encoding.
+
+### Hybrid stages get `dual_stage_box`
+
+A stage genuinely co-owned by two actors (agent recommends, then
+curator decides) gets the diagonal split — left half AI/blue,
+right half curator/amber. Picking one colour undersells the
+other and lies about who's doing the work. See lifecycle
+lesson #5 for the parameter conventions.
+
+### Set + task → `stack_box` (pile with a ticket on top)
+
+When an item represents a *collection of experiments with a job
+to do on them* — a ticket queue, an evaluation batch, an audit
+pile — draw it as a pile of offset cards (the set) with a
+separate ticket overlay (the job). Don't pack both into a
+single labeled box; the ticket-on-pile metaphor reads instantly
+and the labeled-box doesn't.
+
+The pile encodes set-ness even at a glance; the ticket isolates
+*what to do* from *what to do it on*. Use `stack_box` from
+`pavlab_arch.primitives`.
+
+### Containers wrap *logical groups*, not visual rows
+
+A rounded-corner outer box implies "these are facets of one
+thing." Use containers only when the items inside genuinely ARE
+one thing. Two distinct work streams stacked vertically (e.g.
+task tickets and evaluations) want row labels + alignment, not a
+shared container — otherwise the container reads as a
+relationship that isn't there.
+
+If you need to mark a region without implying group identity:
+use a section header (small italic text in `SUBTLE`) above the
+region; skip the box.
+
+### Box dimensions track content, not aesthetic blocks
+
+Width AND height should hug the content. A two-line label-plus-
+subtitle fits in roughly `h = 7–8` axis units (on a 100-unit
+canvas); going to `h = 10` or `h = 11` floats text in empty
+bands. Same rule horizontally: per-column widths
+(`layout.grid_columns`) sized to the longest label, not "make
+all columns equal".
+
+If a row of mixed-length labels keeps colliding with
+`fit_text`'s lower bound, the box is too narrow — widen that
+column, don't shrink the font past readability.
+
+### Long-span dependency arrows route through empty bands
+
+A dependency arrow that crosses 2+ intervening items needs to
+either (a) arc through an empty band above/below the row, or
+(b) be omitted as illustrative noise. Straight diagonals through
+3 columns are unreadable; thin curves through 3 columns are
+worse. Use lesson #1's rad-sign rule to put the arc where
+there's room.
+
+If the band you'd route through doesn't exist, consider whether
+the dependency is real — sometimes the answer is "drop the
+arrow; the order is implicit in the layout."
+
 ## Quick start
 
 ```python
@@ -132,7 +215,8 @@ from pavlab_arch.style import apply_rcparams
 from pavlab_arch.layout import figure
 from pavlab_arch.palette import ACCENT, ACCENT_2, ACCENT_3, ACCENT_4, DET
 from pavlab_arch.primitives import (
-    stage_box, dual_stage_box, perf_gauge, ensemble_proposer, arrow, box,
+    stage_box, dual_stage_box, stack_box,
+    perf_gauge, ensemble_proposer, arrow, box,
 )
 
 apply_rcparams()
@@ -168,25 +252,34 @@ perf_gauge(ax, 70, 50, 25, 6, value=0.93, curator_value=0.82,
 Hard-won lessons from building lifecycle / state-machine figures
 with feedback loops and parallel tracks:
 
-### 1. `arc3` rad-sign rule for loop-back arrows
+### 1. `arc3` rad-sign rule — by arrow direction, not figure direction
 
 `connectionstyle="arc3,rad=R"` bows the arc to **the right of the
-directed vector p1→p2** when `R > 0`. So for a loop-back arrow
-going right-to-left (e.g. `Audit → Curate` recuration loop along
-the top of the diagram):
+directed vector p1→p2** when `R > 0`. The sign is relative to the
+ARROW's direction of travel, *not* the figure's orientation —
+this trips people (and Claude) up repeatedly. Cheat sheet:
 
-- `rad > 0` → arc bows **upward** (over the boxes — almost always
-  collides with the title strip or other stages)
-- `rad < 0` → arc bows **downward** (clear of the row — what you
-  want)
+| Arrow direction | `rad > 0` bows | `rad < 0` bows | To bow DOWN |
+|---|---|---|---|
+| → (rightward) | DOWN | UP | use `+` |
+| ← (leftward)  | UP   | DOWN | use `−` |
+| ↑ (upward)    | RIGHT | LEFT | n/a |
+| ↓ (downward)  | LEFT  | RIGHT | n/a |
 
-Mirror for left-to-right loops: `rad > 0` bows down, `rad < 0`
-bows up. Pick the sign that puts the arc in **empty band**, not
-over labeled content.
+Practical version: a feedback / loop-back arrow goes one way
+and you want it routed through empty space (almost always
+"below the lifecycle row"). Pick the sign that puts the arc
+where there's room. If the figure has both directions of arrows
+(e.g. recuration goes left, a long-span forward dep goes
+right), they need OPPOSITE signs to both route downward:
 
-Magnitude: `|rad| ≈ 0.4–0.6` produces a visible arc without
-needing extreme vertical space. For a one-column hop the arc is
-necessarily short; see lesson 3.
+```python
+sign = 1 if x2 > x1 else -1
+rad  = 0.35 * sign            # both bow DOWN
+```
+
+Magnitude: `|rad| ≈ 0.3–0.6` is the readable range. For a
+one-column hop the arc is necessarily short; see lesson 3.
 
 ### 2. Parallel-tracks (fork-join) pattern
 

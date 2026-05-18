@@ -274,6 +274,85 @@ def dual_stage_box(
         )
 
 
+def stack_box(
+    ax,
+    x: float, y: float, w: float, h: float,
+    *,
+    label: str,
+    task: str,
+    color: str,
+    n_cards: int = 3,
+    card_offset: float = 0.55,
+) -> None:
+    """Render an item as a 'pile of experiments with a ticket on top.'
+
+    The pile is ``n_cards`` offset rectangles in ``color``'s tinted
+    fill — generic experiments, no per-card labels. A ticket sits on
+    the pile: a smaller white rectangle with coloured border carrying
+    the set name (``label``) and the task to do on the set (``task``).
+    Visually reads as 'index card clipped onto a stack of papers'.
+
+    Use whenever an item in your figure represents *a collection
+    plus a job to do* — e.g. a workstream of experiments that all
+    need realignment, an evaluation batch that needs benchmarking,
+    a triage queue of audits awaiting curator review. The pile
+    encodes the set-ness; the ticket encodes the task.
+
+    Do **not** use this to label a single experiment or a single
+    decision point — use ``box`` or ``stage_box`` for those. The
+    pile metaphor is wasted ink (and visually misleading) when
+    there's no actual set.
+
+    ``color`` follows the usual actor convention:
+        - ``ACCENT`` (blue) when an agent owns the task
+        - ``ACCENT_3`` (amber) when a curator decides
+        - ``DET`` (slate) when a deterministic pipeline runs
+        - ``ACCENT_5`` (violet) for evaluation runs
+    """
+    fill = _p.tint(color)
+
+    # Back cards of the pile, faded so the front card reads cleanly.
+    for k in range(n_cards - 1, 0, -1):
+        dx, dy = card_offset * k, card_offset * k
+        ax.add_patch(FancyBboxPatch(
+            (x + dx, y + dy), w, h,
+            boxstyle="round,pad=0,rounding_size=0.05",
+            linewidth=0.9, edgecolor=color, facecolor=fill, alpha=0.75,
+        ))
+    # Front card.
+    ax.add_patch(FancyBboxPatch(
+        (x, y), w, h,
+        boxstyle="round,pad=0,rounding_size=0.05",
+        linewidth=1.3, edgecolor=color, facecolor=fill,
+    ))
+
+    # Ticket on top: white card with coloured border, inset so the
+    # pile's coloured border peeks out around it.
+    inset_x = max(0.6, w * 0.08)
+    inset_v = 0.5
+    tx = x + inset_x
+    ty = y + inset_v
+    tw = w - 2 * inset_x
+    th = h - 2 * inset_v
+    ax.add_patch(FancyBboxPatch(
+        (tx, ty), tw, th,
+        boxstyle="round,pad=0,rounding_size=0.10",
+        linewidth=1.4, edgecolor=color, facecolor="white",
+    ))
+    label_fs = fit_text(label, tw, fontsize=7.8, min_fontsize=6.0)
+    task_fs = fit_text(task, tw, fontsize=6.5, min_fontsize=5.5)
+    ax.text(
+        tx + tw / 2, ty + th * 0.66, label,
+        ha="center", va="center", color=_p.TEXT,
+        fontsize=label_fs, fontweight="bold",
+    )
+    ax.text(
+        tx + tw / 2, ty + th * 0.24, task,
+        ha="center", va="center", color=_p.SUBTLE,
+        fontsize=task_fs, style="italic",
+    )
+
+
 def ensemble_proposer(
     ax,
     x: float, y: float, w: float, h: float,

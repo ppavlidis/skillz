@@ -23,8 +23,8 @@ sys.path.insert(0, str(_SKILL))
 from pavlab_arch import palette as P  # noqa: E402
 from pavlab_arch.layout import figure, FIGSIZES, grid_columns, autosize_columns  # noqa: E402
 from pavlab_arch.primitives import (  # noqa: E402
-    fit_text, stage_box, dual_stage_box, perf_gauge, ensemble_proposer,
-    arrow, box,
+    fit_text, stage_box, dual_stage_box, stack_box, perf_gauge,
+    ensemble_proposer, arrow, box,
 )
 from pavlab_arch.style import apply_rcparams  # noqa: E402
 
@@ -134,6 +134,32 @@ def test_dual_stage_box_draws_both_halves():
     # Should add at least two patches (one polygon per half) plus text
     assert len(ax.patches) >= 2
     assert any("Candidate" in t.get_text() for t in ax.texts)
+    plt.close(fig)
+
+
+def test_stack_box_draws_pile_and_ticket():
+    apply_rcparams()
+    fig, ax = figure(shape="wide_half")
+    # Pile of 3 cards + ticket on top
+    stack_box(ax, 10, 40, 18, 9,
+              label="needs alignment to genome",
+              task="rerun aligner",
+              color=P.DET)
+    # At least n_cards (3) pile patches + 1 ticket patch
+    assert len(ax.patches) >= 4
+    # Both texts present
+    texts = [t.get_text() for t in ax.texts]
+    assert "needs alignment to genome" in texts
+    assert "rerun aligner" in texts
+    plt.close(fig)
+
+
+def test_stack_box_with_single_card():
+    apply_rcparams()
+    fig, ax = figure(shape="wide_half")
+    stack_box(ax, 10, 40, 18, 9,
+              label="solo set", task="run it", color=P.ACCENT,
+              n_cards=1)
     plt.close(fig)
 
 
