@@ -4,7 +4,9 @@ description: >
   Validate bibliography citations against CrossRef to detect hallucinated
   references. For each citation checks: (1) does the DOI exist? (2) does
   the stated metadata (title, year, first author) match CrossRef's record?
-  Accepts BibTeX (.bib) and plain-text / Markdown reference lists. Primary
+  Accepts BibTeX (.bib), LaTeX bibliographies (.tex with thebibliography
+  environment, .bbl), Word (.docx, via python-docx), PDF (.pdf, via
+  pymupdf), plain-text / Markdown reference lists, and Google Docs URLs. Primary
   source: CrossRef REST API (the DOI registrar — a 404 definitively means
   the DOI was never registered). Outputs a TSV report with per-citation
   status, similarity scores, and flags. v0.2 planned: relevance check —
@@ -139,6 +141,36 @@ Splits on blank lines or leading numbered/bulleted patterns. Extracts DOIs
 from anywhere in the block via regex; title and author are best-effort.
 For plain-text input, having DOIs in the bibliography is strongly recommended.
 
+**LaTeX** (`--format latex`, auto-detected for `.tex` and `.bbl`):
+```latex
+\begin{thebibliography}{9}
+\bibitem{love2014}
+Love, M.~I., Huber, W., and Anders, S. (2014).
+\newblock Moderated estimation of fold change ... with DESeq2.
+\newblock \emph{Genome Biology}, 15(12):550.
+\newblock \doi{10.1186/s13059-014-0550-8}.
+\end{thebibliography}
+```
+Finds the ``thebibliography`` environment (or scans the whole file for
+``.bbl`` inputs that omit the wrapper), splits on ``\bibitem``, strips
+LaTeX markup (``\textit``, ``\emph``, ``\href``, accented-letter macros
+like ``\"o``, ``\ss``, ``\'e``), then runs the cleaned text through the
+plain-text parser. Each citation keeps its original ``\bibitem`` key.
+This is the right input format when the user has a journal-formatted
+manuscript with an inline bibliography (rather than a separate ``.bib``).
+
+**Word (.docx)** (auto-detected for `.docx`):
+Extracts paragraphs via `python-docx` (optional dependency; the helper
+raises with an install hint if missing) and feeds them to the plain-
+text parser. One Word paragraph = one citation block. This is the path
+to use when a collaborator sends their bibliography as a Word doc —
+no copy-paste-to-`.txt` step needed.
+
+**PDF** (`.pdf`): extracts text via PyMuPDF (or pypdf fallback), then
+runs the plain-text parser. Best-effort; known weakness on two-column
+layouts where the columns interleave. Prefer `.bib` / `.tex` / `.docx`
+when available.
+
 ## CrossRef API notes
 
 - CrossRef is the DOI registrar. An HTTP 404 on a DOI lookup definitively
@@ -199,6 +231,8 @@ abstract fetching step can delegate to it.  The comparison logic
 - Python 3.9+
 - `requests` — CrossRef HTTP calls
 - `bibtexparser` — optional; improves BibTeX parsing (fallback built-in)
+- `python-docx` — optional; required to read `.docx` (Word) bibliographies
+- `pymupdf` (a.k.a. `fitz`) — optional; required to read `.pdf` input
 
 ## Design contract
 

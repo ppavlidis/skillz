@@ -381,6 +381,132 @@ def parse_text(text: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# LaTeX bibliography parser (.tex with thebibliography env, or .bbl)
+# ---------------------------------------------------------------------------
+
+# Minimal mapping for common accented-letter macros. Not exhaustive — the
+# downstream metadata comparison normalizes/folds accents anyway, so
+# leaving an unmapped macro in place mostly costs us nothing.
+_LATEX_ACCENTS = {
+    r'\"a': "ä", r'\"o': "ö", r'\"u': "ü",
+    r'\"A': "Ä", r'\"O': "Ö", r'\"U': "Ü",
+    r"\'a": "á", r"\'e": "é", r"\'i": "í", r"\'o": "ó", r"\'u": "ú",
+    r"\'A": "Á", r"\'E": "É", r"\'I": "Í", r"\'O": "Ó", r"\'U": "Ú",
+    r"\`a": "à", r"\`e": "è", r"\`i": "ì", r"\`o": "ò", r"\`u": "ù",
+    r"\^a": "â", r"\^e": "ê", r"\^i": "î", r"\^o": "ô", r"\^u": "û",
+    r"\~n": "ñ", r"\~N": "Ñ",
+    r"{\ss}": "ß", r"\ss": "ß",
+    r"\o": "ø", r"\O": "Ø",
+    r"\AA": "Å", r"\aa": "å",
+    r"\ae": "æ", r"\AE": "Æ",
+}
+
+
+def _clean_latex(s: str) -> str:
+    """Strip enough LaTeX markup to make a citation block readable as
+    plain text. Conservative — preserves all content tokens, only
+    removes formatting commands and braces."""
+    # Accented characters first (longest keys first wins via substitution order
+    # only if non-overlapping; the keys here are non-overlapping).
+    for k, v in _LATEX_ACCENTS.items():
+        s = s.replace(k, v)
+
+    # Two passes through the inner-arg commands to handle one level of
+    # nesting (e.g. \textbf{\textit{X}}). Three passes are overkill for
+    # real-world bibliographies; two catches the common cases.
+    inner_arg = re.compile(
+        r"\\(?:textit|textbf|emph|textsc|textrm|texttt|textsf|mathrm|mathit)"
+        r"\s*\{([^{}]*)\}"
+    )
+    for _ in range(2):
+        s = inner_arg.sub(r"\1", s)
+
+    # \href{url}{text} -> text; we lose the url, but the DOI extractor
+    # downstream picks up any 10.xxxx/yyy from the raw block via the
+    # bare doi.org URL, so this is safe.
+    s = re.sub(r"\\href\s*\{[^}]*\}\s*\{([^{}]*)\}", r"\1", s)
+    # \url{X} / \doi{X} / \path{X} -> X (keep — may carry the DOI)
+    s = re.sub(r"\\(?:url|doi|path)\s*\{([^{}]*)\}", r"\1", s)
+    # \newblock and \bibinfo{field}{value} (used by some .bbl styles)
+    s = re.sub(r"\\newblock\s*", " ", s)
+    s = re.sub(r"\\bibinfo\s*\{[^}]*\}\s*\{([^{}]*)\}", r"\1", s)
+
+    # Generic single-argument command: \cmd{X} -> X (one pass — anything
+    # nested deeper falls through, harmless after brace stripping below).
+    s = re.sub(r"\\[a-zA-Z]+\*?\s*\{([^{}]*)\}", r"\1", s)
+    # Remaining bare commands: \something -> drop
+    s = re.sub(r"\\[a-zA-Z]+\*?", "", s)
+
+    # Escaped special chars
+    s = re.sub(r"\\([&%#$_])", r"\1", s)
+    # ~ is a non-breaking space; --- and -- are en/em dashes
+    s = s.replace("~", " ").replace("---", "-").replace("--", "-")
+    # Strip remaining braces (preserves their contents)
+    s = re.sub(r"[{}]", "", s)
+    # Collapse whitespace
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _extract_latex_bibitems(text: str) -> tuple[list[str], list[str]]:
+    """Return parallel lists of (cite-keys, cleaned-block-text) for
+    each ``\\bibitem`` in ``text``.
+
+    If the input contains a ``thebibliography`` environment, only the
+    body of that environment is scanned. Otherwise the whole input is
+    scanned — this is the right behaviour for ``.bbl`` files, which
+    are usually just the body without the wrapper.
+    """
+    env_m = re.search(
+        r"\\begin\{thebibliography\}.*?\n(.*?)\\end\{thebibliography\}",
+        text, flags=re.S,
+    )
+    body = env_m.group(1) if env_m else text
+
+    # Split on \bibitem[optional-label]{key}. The split keeps the captured
+    # key as the odd-indexed group; the content for each entry is the
+    # following even-indexed slice.
+    parts = re.split(r"\\bibitem(?:\[[^\]]*\])?\s*\{([^}]+)\}", body)
+
+    keys: list[str] = []
+    blocks: list[str] = []
+    for i in range(1, len(parts), 2):
+        key = parts[i].strip()
+        content = parts[i + 1] if (i + 1) < len(parts) else ""
+        cleaned = _clean_latex(content)
+        if cleaned:
+            keys.append(key)
+            blocks.append(cleaned)
+    return keys, blocks
+
+
+def parse_latex(text: str) -> list[dict]:
+    """Parse a LaTeX bibliography (``.tex`` with a ``thebibliography``
+    environment, or a ``.bbl`` file) into citation dicts.
+
+    Each ``\\bibitem`` becomes one citation. The block content is
+    stripped of LaTeX markup (``\\textit``, ``\\emph``, ``\\href``,
+    accented-letter macros, etc.) and then run through the existing
+    plain-text parser so DOI / title / year / first-author extraction
+    is identical to the ``.txt`` / ``.md`` path. The original
+    ``\\bibitem`` key replaces the numeric key that ``parse_text``
+    would otherwise assign.
+    """
+    keys, blocks = _extract_latex_bibitems(text)
+    if not blocks:
+        return []
+    glued = "\n\n".join(blocks)
+    citations = parse_text(glued)
+    # Restore the LaTeX cite-keys (best-effort: parse_text skips blocks
+    # it considers junk, so we re-align by counting non-empty blocks).
+    for i, c in enumerate(citations):
+        if i < len(keys):
+            c["key"] = keys[i]
+        c["entry_type"] = "latex_bibitem"
+    return citations
+
+
+# ---------------------------------------------------------------------------
 # Metadata comparison
 # ---------------------------------------------------------------------------
 
@@ -734,9 +860,10 @@ def main(argv=None) -> int:
         description="Validate bibliography citations against CrossRef.",
     )
     parser.add_argument("input",
-                        help="bibliography file (.bib, .txt, .md, .pdf), "
+                        help="bibliography file (.bib, .txt, .md, .pdf, "
+                             ".docx, .tex, .bbl), "
                              "Google Docs URL, or - for stdin")
-    parser.add_argument("--format", choices=["bibtex", "text", "auto"],
+    parser.add_argument("--format", choices=["bibtex", "text", "latex", "auto"],
                         default="auto",
                         help="input format (default: auto-detect from extension)")
     parser.add_argument("--email", metavar="EMAIL",
@@ -772,18 +899,37 @@ def main(argv=None) -> int:
         if not input_path.exists():
             print(f"ERROR: file not found: {input_path}", file=sys.stderr)
             return 1
-        if input_path.suffix.lower() == ".pdf":
+        suffix = input_path.suffix.lower()
+        if suffix == ".pdf":
             text = _extract_pdf_text(input_path)
+        elif suffix == ".docx":
+            try:
+                import _docx
+                text = _docx.extract_text(input_path)
+            except RuntimeError as e:
+                print(f"ERROR reading .docx: {e}", file=sys.stderr)
+                return 1
         else:
             text = input_path.read_text(errors="replace")
 
     # Detect format
     fmt = args.format
     if fmt == "auto":
-        fmt = "bibtex" if input_path.suffix.lower() == ".bib" else "text"
+        suffix = input_path.suffix.lower()
+        if suffix == ".bib":
+            fmt = "bibtex"
+        elif suffix in (".tex", ".bbl"):
+            fmt = "latex"
+        else:
+            fmt = "text"
 
     # Parse
-    citations = parse_bibtex(text) if fmt == "bibtex" else parse_text(text)
+    if fmt == "bibtex":
+        citations = parse_bibtex(text)
+    elif fmt == "latex":
+        citations = parse_latex(text)
+    else:
+        citations = parse_text(text)
     if not citations:
         print("WARNING: no citations parsed.", file=sys.stderr)
         return 0

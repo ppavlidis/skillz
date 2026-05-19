@@ -1,0 +1,9 @@
+\begin{thebibliography}{1}
+
+\bibitem{love2014}
+Love, M.~I., Huber, W., and Anders, S. (2014).
+\newblock Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
+\newblock \emph{Genome Biology}, 15(12):550.
+\newblock 10.1186/s13059-014-0550-8.
+
+\end{thebibliography}
