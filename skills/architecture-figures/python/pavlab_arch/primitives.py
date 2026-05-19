@@ -9,9 +9,11 @@ behaviour with `fit_text=False` if you want fixed sizing (and
 will manually wrap labels yourself).
 """
 from __future__ import annotations
+import math
+from dataclasses import dataclass, field
 from typing import Tuple
 
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Circle
 
 from . import palette as _p
 
@@ -69,21 +71,39 @@ def box(
     fontweight: str = "normal",
     radius: float = 0.05,
     fit: bool = True,
+    linestyle="solid",
+    text_style: str = "normal",
 ) -> None:
     """Rounded rectangle with optional centered text. Use this when
     you need a one-line label only; for label+subtitle use
-    `stage_box`."""
+    `stage_box`.
+
+    Style knobs that compose into the documented conventions:
+
+    | convention            | params                                        |
+    |-----------------------|-----------------------------------------------|
+    | actor (current usage) | (use ``stage_box`` instead)                   |
+    | passive intermediate  | ``fc=tint(DET)``, ``ec='none'``, ``lw=0``     |
+    | catalyst / annotation | ``fc='white'``, ``ec=ACCENT``, ``lw=1.6``     |
+    | spawned / transient   | + ``linestyle=(0,(3,2))`` for dashed border   |
+    | emphasized input      | ``fc='white'``, ``ec=ACCENT_5``, solid        |
+
+    ``linestyle`` accepts matplotlib's tuple form ``(0, (on, off))`` or
+    a string like ``"dashed"``. ``text_style`` is the matplotlib font
+    style (``"normal"`` or ``"italic"``).
+    """
     ax.add_patch(FancyBboxPatch(
         (x, y), w, h,
         boxstyle=f"round,pad=0.0,rounding_size={radius}",
         linewidth=lw, edgecolor=ec, facecolor=fc,
+        linestyle=linestyle,
     ))
     if text:
         fs = fit_text(text, w, fontsize=fontsize) if fit else fontsize
         ax.text(
             x + w / 2, y + h / 2, text,
             ha="center", va="center", color=text_color,
-            fontsize=fs, fontweight=fontweight, wrap=True,
+            fontsize=fs, fontweight=fontweight, style=text_style, wrap=True,
         )
 
 
@@ -96,13 +116,31 @@ def arrow(
     mut: float = 14,
     style: str = "-|>",
     connectionstyle: str | None = None,
+    linestyle="solid",
+    shrinkA: float = 0,
+    shrinkB: float = 0,
 ) -> None:
     """Thick arrow — defaults match the Pavlab "not spindly" rule.
-    `mut` (mutation_scale) controls arrow-head size; below 12 it
-    starts to look skinny."""
+    ``mut`` (mutation_scale) controls arrow-head size; below 12 it
+    starts to look skinny.
+
+    Style knobs that compose into the documented conventions:
+
+    | convention             | params                                       |
+    |------------------------|----------------------------------------------|
+    | primary flow (default) | ``style="-|>"``, ``lw=2.0``, solid           |
+    | secondary / side flow  | ``style="->"`` (open head), ``lw=1.2``       |
+    | feedback / out-of-band | ``linestyle=(0,(5,3))`` for dashed           |
+    | no head (relationship) | ``style="-"``                                |
+
+    Use ``shrinkA``/``shrinkB`` to pull the endpoints inside the bbox
+    of a circular/star layout (e.g. cycle arrows that connect chip
+    centres but should visually stop at the chip edge).
+    """
     kw = dict(
         arrowstyle=style, color=color, linewidth=lw,
-        mutation_scale=mut, shrinkA=0, shrinkB=0,
+        mutation_scale=mut, linestyle=linestyle,
+        shrinkA=shrinkA, shrinkB=shrinkB,
     )
     if connectionstyle:
         kw["connectionstyle"] = connectionstyle
@@ -464,4 +502,651 @@ def perf_gauge(
             x - 0.4, y + h / 2, label,
             ha="right", va="center", fontsize=8,
             color=_p.SUBTLE,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Pill (oval) and circle — for non-rectangular nodes
+# ---------------------------------------------------------------------------
+
+def oval(
+    ax,
+    cx: float, cy: float, w: float, h: float,
+    *,
+    fc: str = "white",
+    ec: str = _p.SUBTLE,
+    lw: float = 1.6,
+    linestyle="solid",
+    rounding: float | None = None,
+    text: str = "",
+    text_color: str = _p.TEXT,
+    fontsize: float = 9.5,
+    fontweight: str = "normal",
+    text_style: str = "normal",
+) -> None:
+    """Pill-shaped (fully-rounded rectangle) node centered at ``(cx, cy)``.
+
+    Defaults to a pill (``rounding = min(w, h) / 2``, so the short axis
+    is fully rounded into semicircular caps). Pass ``rounding`` to
+    relax to an arbitrary corner radius — at ``rounding = h * 0.2`` it
+    reads as a soft-rounded rectangle.
+
+    Use for nodes that should read as "molecule-like" rather than
+    "stage-like" — chemical species in a pathway, entities in an ER
+    diagram, classes in a class-and-relationship diagram.
+    """
+    if rounding is None:
+        rounding = min(w, h) / 2
+    x, y = cx - w / 2, cy - h / 2
+    ax.add_patch(FancyBboxPatch(
+        (x, y), w, h,
+        boxstyle=f"round,pad=0.0,rounding_size={rounding}",
+        linewidth=lw, edgecolor=ec, facecolor=fc, linestyle=linestyle,
+    ))
+    if text:
+        ax.text(cx, cy, text,
+                ha="center", va="center", color=text_color,
+                fontsize=fontsize, fontweight=fontweight, style=text_style)
+
+
+def circle(
+    ax,
+    cx: float, cy: float, r: float,
+    *,
+    fc: str = "white",
+    ec: str = _p.SUBTLE,
+    lw: float = 1.6,
+    linestyle="solid",
+    text: str = "",
+    text_color: str = _p.TEXT,
+    fontsize: float = 9.5,
+    fontweight: str = "normal",
+    text_style: str = "normal",
+) -> None:
+    """Circle of radius ``r`` centered at ``(cx, cy)``.
+
+    Use for single-letter or single-digit nodes (state labels, network
+    nodes, junction markers), or for the center of a radial diagram.
+    Aspect-locked — always renders as a true circle regardless of
+    figure aspect because matplotlib's ``Circle`` is data-coordinate
+    aware.
+    """
+    ax.add_patch(Circle(
+        (cx, cy), r,
+        facecolor=fc, edgecolor=ec, linewidth=lw, linestyle=linestyle,
+    ))
+    if text:
+        ax.text(cx, cy, text,
+                ha="center", va="center", color=text_color,
+                fontsize=fontsize, fontweight=fontweight, style=text_style)
+
+
+# ---------------------------------------------------------------------------
+# Lane-aware forward arrow — same-lane straight, cross-lane diagonal
+# ---------------------------------------------------------------------------
+
+def lane_arrow(
+    ax,
+    src: Tuple[float, float, float, float],
+    dst: Tuple[float, float, float, float],
+    *,
+    color: str = _p.SUBTLE,
+    lw: float = 2.0,
+    mut: float = 14,
+    style: str = "-|>",
+    cross_mode: str = "smooth_l",
+    corner_rad: float = 4.0,
+    arc_rad: float = -0.3,
+    src_frac: float = 0.7,
+    dst_frac: float = 0.5,
+) -> None:
+    """Forward arrow between two stage boxes, with lane-aware routing.
+
+    ``src`` and ``dst`` are ``(x, y, w, h)`` rects in axis coords (the
+    same tuple a builder typically stores per stage).
+
+    Routing:
+
+    - **Same-lane** (``|ys - yd| < 0.5``): straight horizontal arrow
+      from the right-middle of ``src`` to the left-middle of ``dst``.
+      Always.
+
+    - **Cross-lane** (different ``y``): controlled by ``cross_mode``:
+
+      * ``"smooth_l"`` (default) — **L-path with rounded corner** via
+        ``connectionstyle="angle,angleA=±90,angleB=0,rad=corner_rad"``.
+        The arrow exits ``src`` through its top/bottom edge (whichever
+        faces the destination lane) at horizontal fraction ``src_frac``,
+        travels straight to a corner positioned at the intersection of
+        the vertical-from-start and horizontal-from-end lines, rounds
+        the corner with radius ``corner_rad``, then travels straight
+        into the LEFT edge of ``dst`` at vertical fraction ``dst_frac``.
+        The result is a clear "down-then-right" or "up-then-right" ell
+        with explicit straight segments and a smooth corner —
+        visually unambiguous and never overlaps with same-lane edges
+        from the same source. (The older ``angle3`` Bezier variant
+        produced a tight cusp when the horizontal arm was short.)
+
+      * ``"diag"`` — straight diagonal. Source's bottom-or-top at
+        ``src_frac``, target's top-or-bottom at ``dst_frac``. Cleaner
+        than a small-rad arc, but for adjacent columns the line is
+        steep and competes visually with the same-lane horizontal
+        from the same source.
+
+      * ``"arc"`` — ``arc3,rad=arc_rad``. Historical option. Avoid
+        for short chords (adjacent columns) — small ``rad`` values
+        render as bent / 90°-looking paths and read poorly. Use only
+        when the geometry forces the diagonal through another box.
+
+    Why ``smooth_l`` is the default: a long-standing issue with
+    cross-lane edges in this skill was that ``arc3,rad=±0.15`` produced
+    visibly-bent paths when chords were short (one-column hops). The
+    smooth ell via ``angle3`` is well-behaved at every chord length
+    and matches the visual grammar most readers expect from fork-join
+    architecture diagrams.
+    """
+    xs, ys, ws, hs = src
+    xd, yd, wd, hd = dst
+    same_lane = abs(ys - yd) < 0.5
+    cs: str | None = None
+
+    if same_lane:
+        p1 = (xs + ws + 0.05, ys + hs / 2)
+        p2 = (xd - 0.05, yd + hd / 2)
+    elif cross_mode == "smooth_l":
+        # Routing rule: the vertical leg always stays close to the SOURCE
+        # so it never crosses obstacles in the target's lane.
+        #
+        #   Going DOWN (fork pattern) → V-then-H "down then right":
+        #     exit the source's BOTTOM at horizontal fraction src_frac,
+        #     descend through the inter-lane band in the source's column
+        #     (empty in a typical fork — the source is in the single-lane
+        #     region before the parallel tracks), then horizontal into
+        #     the target's LEFT edge.
+        #
+        #   Going UP (join pattern) → H-then-V "right then up":
+        #     exit the source's RIGHT at vertical fraction src_frac,
+        #     traverse horizontally through the inter-lane band into
+        #     the target's column (empty on the source's lane in a
+        #     typical join), then vertical up into the target's BOTTOM
+        #     edge.
+        #
+        # Why the asymmetry: in a typical fork/join, the source's column
+        # in the parallel-tracks region has a same-column stage on the
+        # OPPOSITE lane. A naive V-H for the join would route the
+        # vertical leg through that stage. The "vertical near source,
+        # horizontal near target" rule sidesteps the obstacle in both
+        # directions.
+        if ys > yd:
+            # Down-right ell: V-then-H. Corner at (p1.x, p2.y).
+            p1 = (xs + ws * src_frac, ys)
+            p2 = (xd, yd + hd * dst_frac)
+            cs = f"angle,angleA=-90,angleB=0,rad={corner_rad}"
+        else:
+            # Up-right ell: H-then-V. Corner at (p2.x, p1.y).
+            p1 = (xs + ws, ys + hs * src_frac)
+            p2 = (xd + wd * dst_frac, yd)
+            cs = f"angle,angleA=0,angleB=90,rad={corner_rad}"
+    elif cross_mode == "diag":
+        if ys > yd:
+            p1 = (xs + ws * src_frac, ys)
+            p2 = (xd + wd * (1 - src_frac), yd + hd)
+        else:
+            p1 = (xs + ws * src_frac, ys + hs)
+            p2 = (xd + wd * (1 - src_frac), yd)
+    elif cross_mode == "arc":
+        p1 = (xs + ws + 0.05, ys + hs / 2)
+        p2 = (xd - 0.05, yd + hd / 2)
+        cs = f"arc3,rad={arc_rad}"
+    else:
+        raise ValueError(
+            f"unknown cross_mode {cross_mode!r}; expected "
+            f"'smooth_l', 'diag', or 'arc'"
+        )
+
+    kw = dict(arrowstyle=style, color=color, linewidth=lw,
+              mutation_scale=mut, shrinkA=0, shrinkB=0)
+    if cs is not None:
+        kw["connectionstyle"] = cs
+    ax.add_patch(FancyArrowPatch(p1, p2, **kw))
+
+
+# ---------------------------------------------------------------------------
+# Compact, position-parameterised legend block
+# ---------------------------------------------------------------------------
+
+def legend_block(
+    ax,
+    x: float, y_top: float,
+    specs,
+    *,
+    title: str | None = "Legend",
+    chip_w: float = 4.0,
+    chip_h: float = 2.4,
+    row_gap: float = 1.1,
+    text_pad: float = 1.0,
+    title_pad: float = 2.4,
+    label_fontsize: float = 8.5,
+    title_fontsize: float = 8.5,
+    note_fontsize: float | None = None,
+) -> tuple[float, float]:
+    """Compact vertical legend block — chip on the LEFT of each row,
+    text on the RIGHT, no overlap. Anchored at top-left ``(x, y_top)``.
+
+    ``specs`` is an iterable of ``(color, is_det, label, note)``:
+
+    - ``color`` — hex string, or a ``(left, right)`` tuple to render a
+      ``dual_stage_box`` chip for a hybrid actor.
+    - ``is_det`` — render the slate-tinted "automated" style.
+    - ``label`` — main label, drawn in ``TEXT`` colour and bold.
+    - ``note`` — optional secondary text, drawn in ``SUBTLE`` colour
+      to the right of the label. Pass an empty string or ``""`` to
+      skip.
+
+    The block is fully position-parameterised so callers can drop it
+    in any corner of the figure: ``legend_block(ax, x=72, y_top=20,
+    specs=...)`` puts it bottom-right; ``legend_block(ax, x=4,
+    y_top=88, specs=...)`` puts it in the top-left margin.
+
+    Returns ``(width, height)`` of the rendered block in axis units
+    so the caller can lay out adjacent content.
+
+    Comparison with the older inline ``_legend_chip`` pattern: that
+    helper stacked ``label`` (bold) and ``note`` (italic, smaller)
+    *inside* a 2.6-tall chip, which at typical figsizes overlapped
+    visibly. ``legend_block`` puts the chip and the text side-by-side
+    so neither competes for vertical space.
+    """
+    if note_fontsize is None:
+        note_fontsize = label_fontsize - 0.5
+
+    cur_y = y_top
+    if title:
+        ax.text(x, cur_y, title,
+                ha="left", va="top",
+                color=_p.SUBTLE, fontsize=title_fontsize, style="italic")
+        cur_y -= title_pad
+
+    max_text_extent = 0.0
+    # axis-units-per-character — derived from the actual figure width
+    # so the heuristic stays correct across figsizes (a fixed multiplier
+    # of 0.06 was calibrated for a 14" figure and under-estimated text
+    # extent on smaller figures, causing label / note overlap).
+    fig_width_in = ax.figure.get_size_inches()[0]
+    char_w = label_fontsize * 0.6 / 72 * 100 / fig_width_in
+
+    for spec in specs:
+        color, is_det, label, note = spec[0], spec[1], spec[2], spec[3]
+        chip_y = cur_y - chip_h
+
+        if isinstance(color, tuple):
+            dual_stage_box(ax, x, chip_y, chip_w, chip_h, "",
+                           color[0], color[1])
+        else:
+            stage_box(ax, x, chip_y, chip_w, chip_h, "", color,
+                      is_det=is_det, fit=False)
+
+        text_y = chip_y + chip_h / 2
+        text_x = x + chip_w + text_pad
+        ax.text(text_x, text_y, label,
+                ha="left", va="center",
+                color=_p.TEXT, fontsize=label_fontsize, fontweight="bold")
+
+        ext = len(label) * char_w
+        if note:
+            note_x = text_x + ext + 0.9
+            ax.text(note_x, text_y, note,
+                    ha="left", va="center",
+                    color=_p.SUBTLE, fontsize=note_fontsize, style="italic")
+            ext = (note_x - text_x) + len(note) * note_fontsize * 0.06
+
+        max_text_extent = max(max_text_extent, ext)
+        cur_y = chip_y - row_gap
+
+    block_w = chip_w + text_pad + max_text_extent
+    block_h = y_top - (cur_y + row_gap)
+    return block_w, block_h
+
+
+# ---------------------------------------------------------------------------
+# Labeled arrow — the general "edge with a label" pattern
+# ---------------------------------------------------------------------------
+
+def labeled_arrow(
+    ax,
+    x1: float, y1: float, x2: float, y2: float,
+    label: str,
+    *,
+    # arrow params
+    color: str = _p.SUBTLE,
+    lw: float = 2.0,
+    mut: float = 14,
+    style: str = "-|>",
+    connectionstyle: str | None = None,
+    linestyle="solid",
+    shrinkA: float = 0,
+    shrinkB: float = 0,
+    # label params
+    label_color: str | None = None,
+    label_fontsize: float = 7.5,
+    label_style: str = "italic",
+    label_weight: str = "bold",
+    label_along: float = 0.5,
+    label_side: float = 2.0,
+) -> None:
+    """Arrow from ``(x1, y1)`` to ``(x2, y2)`` with a label positioned
+    along the chord.
+
+    This is the **labeled-edge** pattern — fundamental whenever a
+    diagram has things connected by arrows AND the arrow itself
+    carries information: state-machine transitions ("on_failure"),
+    pathway catalysts ("aconitase"), network protocols ("TCP/443"),
+    ER cardinalities ("1..*"), class associations ("uses"), Sankey
+    edge labels, dependency reasons, etc.
+
+    Convention: label sits OFF the arrow path (perpendicular to the
+    chord) so the line and the text never compete for the same
+    pixels. Default styling is italic, ``ACCENT``-coloured, bold, at
+    7.5pt — quiet enough to not visually overpower the structural
+    arrow but legible at typical figsizes.
+
+    Positioning:
+      - ``label_along`` ∈ ``[0, 1]`` — fraction along the chord
+        (0 = at start, 1 = at end). Default 0.5 = midpoint.
+      - ``label_side`` — perpendicular offset from the chord, in
+        axis units. **Positive = LEFT of the arrow's direction of
+        travel** (so for a clockwise cycle, positive offsets put
+        labels on the OUTWARD side, which is usually where you want
+        them). Zero = on the chord. Negative = right of direction.
+
+    All other parameters mirror ``arrow``. Pass ``connectionstyle``
+    (e.g. ``"arc3,rad=-0.13"``) for curved arrows; the label still
+    anchors to the chord midpoint by default — adjust ``label_side``
+    if the curve pulls the visible apex away from the chord and you
+    want the label to follow.
+    """
+    # 1. Draw the arrow.
+    kw = dict(
+        arrowstyle=style, color=color, linewidth=lw,
+        mutation_scale=mut, linestyle=linestyle,
+        shrinkA=shrinkA, shrinkB=shrinkB,
+    )
+    if connectionstyle:
+        kw["connectionstyle"] = connectionstyle
+    ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), **kw))
+
+    # 2. Position the label.
+    cx = x1 + label_along * (x2 - x1)
+    cy = y1 + label_along * (y2 - y1)
+    if label_side:
+        dx, dy = x2 - x1, y2 - y1
+        d = math.hypot(dx, dy) or 1.0
+        # Left perpendicular of the arrow direction:
+        #   for arrow going RIGHT (dx>0), left = UP   → (-dy, dx) = (0, dx) ✓
+        #   for arrow going UP    (dy>0), left = LEFT → (-dy, dx) = (-dy, 0) ✓
+        perp_x = -dy / d
+        perp_y = dx / d
+        cx += perp_x * label_side
+        cy += perp_y * label_side
+
+    color_l = label_color if label_color is not None else _p.ACCENT
+    ax.text(
+        cx, cy, label,
+        ha="center", va="center",
+        color=color_l, fontsize=label_fontsize,
+        style=label_style, fontweight=label_weight,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Gantt charts
+# ---------------------------------------------------------------------------
+
+@dataclass
+class GanttTask:
+    """One row in a Gantt chart.
+
+    - ``plan_start`` / ``plan_end`` — the planned span in the time
+      units of the x-axis (any numeric: dates encoded as floats,
+      session numbers, weeks, sprints).
+    - ``done_end`` — how far the "done" overlay fills, in the same
+      units. Use ``done_end == plan_start`` for not-yet-started, and
+      ``done_end == plan_end`` for fully complete.
+    - ``status`` — one of ``"done"``, ``"inflight"``, ``"planned"``,
+      ``"blocked"``, ``"deferred"``. Controls the colour / pattern
+      of the remaining (unfilled) portion of the bar.
+    - ``category`` — optional grouping key. Tasks sharing a category
+      get rendered with a shared right-side category label and a
+      light row-band shading (when ``show_categories=True``).
+    - ``note`` — optional free-text annotation, not currently rendered
+      but available for callers that want to surface it.
+    """
+    label: str
+    plan_start: float
+    plan_end: float
+    done_end: float = 0.0
+    status: str = "planned"
+    category: str = ""
+    note: str = ""
+
+
+# Status -> (fill, edge, hatch, alpha) for the remaining (unfilled)
+# overlay portion of a Gantt bar. Done portion is always emerald.
+_GANTT_STATUS = {
+    "inflight": dict(fc=_p.ACCENT_3, ec="none", hatch=None, alpha=0.55),
+    "blocked":  dict(fc=_p.GRID,     ec=_p.ACCENT_4, hatch="//", alpha=1.0),
+    "deferred": dict(fc=_p.GRID,     ec=_p.SUBTLE,   hatch="..", alpha=1.0),
+    "planned":  dict(fc=None,        ec=None,        hatch=None, alpha=1.0),
+    "done":     dict(fc=None,        ec=None,        hatch=None, alpha=1.0),
+}
+
+
+def gantt_bar(
+    ax,
+    y: float,
+    plan_start: float,
+    plan_end: float,
+    done_end: float,
+    status: str = "planned",
+    *,
+    height: float = 0.62,
+    done_color: str = _p.ACCENT_2,
+    planned_color: str = _p.GRID,
+) -> None:
+    """One Gantt row, layered: planned-bar background, status overlay
+    on the remaining portion, done overlay on the completed portion.
+
+    Convention:
+      - planned bar (full span) drawn in ``GRID`` (gray-200), no edge
+      - "done" overlay in ``ACCENT_2`` (emerald) from ``plan_start``
+        to ``done_end``
+      - "remaining" overlay (``done_end`` to ``plan_end``) styled by
+        ``status``: amber semi-transparent for in-flight; red-hatched
+        for blocked; dot-hatched for deferred; nothing extra for plain
+        planned/done.
+
+    ``y`` is the row centre. ``height`` is the bar height in y-units.
+    The same row can be a single ``GanttTask``'s render.
+    """
+    plan_w = plan_end - plan_start
+    done_w = max(0.0, done_end - plan_start)
+    remaining_start = plan_start + done_w
+    remaining_w = plan_w - done_w
+
+    # planned background
+    ax.barh(
+        y, plan_w, left=plan_start, height=height,
+        color=planned_color, edgecolor="none", zorder=2,
+    )
+
+    # remaining-portion overlay
+    info = _GANTT_STATUS.get(status, _GANTT_STATUS["planned"])
+    if remaining_w > 0 and info["fc"] is not None:
+        ax.barh(
+            y, remaining_w, left=remaining_start, height=height,
+            color=info["fc"], edgecolor=info["ec"] or "none",
+            linewidth=1.4 if info["ec"] else 0,
+            hatch=info["hatch"], alpha=info["alpha"], zorder=2.5,
+        )
+
+    # done overlay
+    if done_w > 0:
+        ax.barh(
+            y, done_w, left=plan_start, height=height,
+            color=done_color, edgecolor="none", zorder=3,
+        )
+
+
+def today_line(
+    ax,
+    x: float,
+    *,
+    label: str = "today",
+    label_y: float | None = None,
+    color: str = _p.SUBTLE,
+    lw: float = 0.9,
+    linestyle: str = "--",
+) -> None:
+    """Vertical reference line for "now" / "today" / cursor position
+    on any horizontal-time chart (Gantt, timeline, etc.).
+
+    ``label_y`` defaults to just below the top of the axes' y-range so
+    the label sits above the highest row.
+    """
+    ax.axvline(x, color=color, linewidth=lw, linestyle=linestyle, zorder=4)
+    if label:
+        if label_y is None:
+            y_lo, y_hi = ax.get_ylim()
+            label_y = y_hi - 0.7
+        ax.text(
+            x + 0.08, label_y, label,
+            fontsize=8, color=color, va="top", ha="left",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Cylinder — the conventional database / store symbol
+# ---------------------------------------------------------------------------
+
+def cylinder(
+    ax,
+    cx: float, cy: float, w: float, h: float,
+    *,
+    fc: str = "white",
+    ec: str = _p.SUBTLE,
+    lw: float = 1.4,
+    linestyle="solid",
+    cap_ratio: float = 0.20,
+    text: str = "",
+    text_color: str = _p.TEXT,
+    fontsize: float = 9.5,
+    fontweight: str = "bold",
+    sub: str = "",
+    sub_color: str | None = None,
+) -> None:
+    """Cylinder centered at ``(cx, cy)``, width ``w``, height ``h``.
+
+    The conventional database / data-store symbol: an elliptical top
+    cap, two vertical sides, and a half-elliptical bottom (only the
+    front half of the bottom is drawn — the back half would be hidden
+    behind the body in a real cylinder). Use for databases, queues,
+    or anything that should read "persistent store" at a glance.
+
+    ``cap_ratio`` is the height fraction taken by the top / bottom
+    ellipses (default 0.20 → tall body + modest caps). With
+    ``cap_ratio=0.3`` the cylinder looks shorter and squatter.
+    """
+    from matplotlib.patches import Ellipse, Rectangle, Arc
+    from matplotlib.lines import Line2D
+
+    cap_h = h * cap_ratio
+    body_h = h - cap_h
+    half_w = w / 2
+    half_body = body_h / 2
+
+    # Filled body rectangle (no border — sides drawn separately)
+    ax.add_patch(Rectangle(
+        (cx - half_w, cy - half_body), w, body_h,
+        facecolor=fc, edgecolor="none", zorder=2,
+    ))
+
+    # Two vertical side lines
+    for x in (cx - half_w, cx + half_w):
+        ax.add_line(Line2D(
+            [x, x], [cy - half_body, cy + half_body],
+            color=ec, linewidth=lw, linestyle=linestyle, zorder=3,
+        ))
+
+    # Top: full ellipse, filled
+    ax.add_patch(Ellipse(
+        (cx, cy + half_body), w, cap_h,
+        facecolor=fc, edgecolor=ec, linewidth=lw,
+        linestyle=linestyle, zorder=4,
+    ))
+
+    # Bottom: only the front half of the ellipse curve (back half is
+    # hidden in a real cylinder). Arc doesn't fill — it traces an arc.
+    ax.add_patch(Arc(
+        (cx, cy - half_body), w, cap_h,
+        angle=0, theta1=180, theta2=360,
+        edgecolor=ec, linewidth=lw, linestyle=linestyle, zorder=4,
+    ))
+
+    # Text (label centred; subtitle slightly below)
+    if text:
+        ax.text(cx, cy + (1.0 if sub else 0.0), text,
+                ha="center", va="center",
+                color=text_color, fontsize=fontsize, fontweight=fontweight)
+    if sub:
+        ax.text(cx, cy - 1.5, sub,
+                ha="center", va="center",
+                color=sub_color or _p.SUBTLE,
+                fontsize=fontsize - 2.0, style="italic")
+
+
+# ---------------------------------------------------------------------------
+# Container — dashed grouping rectangle
+# ---------------------------------------------------------------------------
+
+def container(
+    ax,
+    x_lo: float, y_lo: float, x_hi: float, y_hi: float,
+    label: str | None = None,
+    *,
+    fc: str = "none",
+    ec: str = _p.SUBTLE,
+    lw: float = 1.2,
+    linestyle=(0, (5, 3)),
+    radius: float = 0.04,
+    label_color: str | None = None,
+    label_fontsize: float = 10.0,
+    label_fontweight: str = "bold",
+    label_pad: float = 2.5,
+) -> None:
+    """Dashed (or solid) rounded container that groups related elements.
+
+    Visually says "these belong together" without requiring an opaque
+    background — distinct from ``tier_band``-style soft-filled
+    containers because it has an explicit border instead of a fill.
+
+    Defaults: no fill, dashed `SUBTLE` border, bold label at the
+    top-left padded inward by ``label_pad``. Override ``fc`` to a
+    very light tint (e.g. ``tint(ACCENT_2)``) for a "soft-fill +
+    dashed border" combo, used by classical full-stack diagrams to
+    mark the "Front End / Back End" mega-regions.
+
+    Pass ``linestyle="solid"`` for a solid-border grouping (used when
+    the group is permanent / load-bearing rather than tentative).
+    """
+    ax.add_patch(FancyBboxPatch(
+        (x_lo, y_lo), x_hi - x_lo, y_hi - y_lo,
+        boxstyle=f"round,pad=0.0,rounding_size={radius}",
+        linewidth=lw, edgecolor=ec, facecolor=fc, linestyle=linestyle,
+    ))
+    if label:
+        ax.text(
+            x_lo + label_pad, y_hi - label_pad, label,
+            ha="left", va="top",
+            color=label_color or ec,
+            fontsize=label_fontsize, fontweight=label_fontweight,
         )

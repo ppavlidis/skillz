@@ -33,8 +33,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch  # noqa: E402
 
 from pavlab_arch import palette as P  # noqa: E402
-from pavlab_arch.layout import figure  # noqa: E402
-from pavlab_arch.primitives import arrow, stage_box  # noqa: E402
+from pavlab_arch.layout import figure, svg_safe  # noqa: E402
+from pavlab_arch.primitives import (  # noqa: E402
+    arrow, lane_arrow, stage_box, legend_block,
+)
 from pavlab_arch.style import apply_rcparams  # noqa: E402
 
 
@@ -70,16 +72,6 @@ FORWARD_EDGES = [
 ]
 
 
-def _legend_chip(ax, x, y, color, *, is_det=False, label="", note=""):
-    """Small example stage_box + label pair for the legend strip."""
-    stage_box(ax, x, y, 4.5, 2.6, "", color, is_det=is_det)
-    ax.text(x + 5.5, y + 1.6, label,
-            ha="left", va="center", color=P.TEXT, fontsize=8.5, fontweight="bold")
-    if note:
-        ax.text(x + 5.5, y + 0.5, note,
-                ha="left", va="center", color=P.SUBTLE, fontsize=7.5)
-
-
 def build_lifecycle_figure() -> tuple[Path, Path]:
     apply_rcparams()
     # wide_half-ish but a touch taller for the cross-cutting layer.
@@ -88,10 +80,10 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
     # ---- Title strip ----
     ax.text(0.5, 96,
             "Generic curation workflow — experiment lifecycle",
-            ha="left", va="top", color=P.TEXT, fontsize=13, fontweight="bold")
+            ha="left", va="top", color=P.TEXT, fontsize=15.5, fontweight="bold")
     ax.text(0.5, 92,
             "From discovery to public release, with AI assistance at every state",
-            ha="left", va="top", color=P.SUBTLE, fontsize=9.5)
+            ha="left", va="top", color=P.SUBTLE, fontsize=11.0)
 
     # ---- Inputs strip (top-left, feeds into Discovery) ----
     in_x, in_y = 1.5, 73
@@ -102,7 +94,7 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
             linewidth=1.2, edgecolor=P.SUBTLE, facecolor="white",
         ))
         ax.text(in_x + 5.5, in_y + (1 - j) * 4.5 + 1.8, lbl,
-                ha="center", va="center", color=P.TEXT, fontsize=8.5)
+                ha="center", va="center", color=P.TEXT, fontsize=10.0)
 
     # ---- Main lifecycle — column-and-lane grid ----
     row_x0 = 14.0
@@ -120,19 +112,14 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
                   is_det=is_det, subtitle=subtitle)
         centres[key] = (x, y, stage_w, stage_h)
 
-    # Forward arrows — same-lane straight; cross-lane angled.
+    # Forward arrows — `lane_arrow` handles same-lane vs cross-lane
+    # routing. Cross-lane edges (fork: loaded → process; join: process
+    # → audit) render as smooth L-shapes via `angle3` rather than the
+    # historical small-rad `arc3` that produced visibly-bent paths on
+    # short chords.
     for src, dst in FORWARD_EDGES:
-        xs, ys, ws, hs = centres[src]
-        xd, yd, wd, hd = centres[dst]
-        y_src_mid = ys + hs / 2
-        y_dst_mid = yd + hd / 2
-        if ys == yd:
-            arrow(ax, xs + ws + 0.05, y_src_mid, xd - 0.05, y_dst_mid,
-                  color=P.SUBTLE, lw=2.0, mut=14)
-        else:
-            arrow(ax, xs + ws + 0.05, y_src_mid, xd - 0.05, y_dst_mid,
-                  color=P.SUBTLE, lw=2.0, mut=14,
-                  connectionstyle="arc3,rad=-0.15" if ys > yd else "arc3,rad=0.15")
+        lane_arrow(ax, centres[src], centres[dst],
+                   color=P.SUBTLE, lw=2.0, mut=14)
 
     # Input arrows into Discovery (two short stubs)
     xd, yd, wd, hd = centres["discovery"]
@@ -152,7 +139,7 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
           connectionstyle="arc3,rad=-0.55")
     # Park the label OFF the arc (short chord, would collide with apex).
     ax.text(xa + wa * 0.9, ya - 3.5, "recuration loop",
-            ha="left", va="top", color=P.ACCENT_4, fontsize=8.5,
+            ha="left", va="top", color=P.ACCENT_4, fontsize=10.0,
             style="italic", fontweight="bold")
 
     # ---- Cross-cutting layer — task tickets + evaluations ----
@@ -171,11 +158,11 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
     ))
     ax.text(cross_x + 0.5, cross_y_top + cross_h + 0.4,
             "Cross-cutting work streams — target any lifecycle state",
-            ha="left", va="bottom", color=P.SUBTLE, fontsize=9, style="italic")
+            ha="left", va="bottom", color=P.SUBTLE, fontsize=10.5, style="italic")
 
     # Task tickets row
     ax.text(cross_x + 0.5, cross_y_top + cross_h / 2, "Task\ntickets",
-            ha="left", va="center", color=P.TEXT, fontsize=9, fontweight="bold")
+            ha="left", va="center", color=P.TEXT, fontsize=11.0, fontweight="bold")
     ticket_labels = [
         "needs alignment\nto reference",
         "outlier review",
@@ -193,11 +180,11 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
             linewidth=1.4, edgecolor=P.ACCENT_3, facecolor=P.tint(P.ACCENT_3),
         ))
         ax.text(bx + t_w / 2, cross_y_top + cross_h / 2, lbl,
-                ha="center", va="center", color=P.TEXT, fontsize=7.8)
+                ha="center", va="center", color=P.TEXT, fontsize=9.5)
 
     # Evaluations row
     ax.text(cross_x + 0.5, cross_y_bot + cross_h / 2, "Evaluations",
-            ha="left", va="center", color=P.TEXT, fontsize=9, fontweight="bold")
+            ha="left", va="center", color=P.TEXT, fontsize=11.0, fontweight="bold")
     eval_labels = [
         "holdout set\n(this work)",
         "calibration\npackage",
@@ -213,7 +200,7 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
             linewidth=1.4, edgecolor=P.ACCENT_5, facecolor=P.tint(P.ACCENT_5),
         ))
         ax.text(bx + t_w / 2, cross_y_bot + cross_h / 2, lbl,
-                ha="center", va="center", color=P.TEXT, fontsize=7.8)
+                ha="center", va="center", color=P.TEXT, fontsize=9.5)
 
     # Dashed up-arrows from the cross-cutting layer into the lifecycle.
     def _dashed_up(x_from, y_from, x_to, y_to, color):
@@ -232,26 +219,26 @@ def build_lifecycle_figure() -> tuple[Path, Path]:
     _dashed_up(xcu + wcu / 2, cross_y_bot + cross_h, xcu + wcu / 2, cross_y_top - 0.5, P.ACCENT_5)
     _dashed_up(xau + wau / 2, cross_y_bot + cross_h, xau + wau / 2, cross_y_top - 0.5, P.ACCENT_5)
 
-    # ---- Legend strip ----
-    leg_y = 4.5
-    ax.text(cross_x + 0.5, leg_y + 4.5, "Legend",
-            ha="left", va="bottom", color=P.SUBTLE, fontsize=8.5, style="italic")
+    # ---- Legend block — compact vertical chip + text-to-the-right.
+    # Placed in the bottom-left margin below the cross-cutting container.
     legend_specs = [
-        (P.ACCENT,   False, "Agent (LLM)",     "proposer · auditor"),
-        (P.DET,      True,  "Deterministic",   "pipelines"),
-        (P.ACCENT_3, False, "Human review",    "decision-in-the-loop"),
-        (P.ACCENT_5, False, "Evaluation",      "benchmarks, ablations"),
-        (P.ACCENT_4, False, "Recuration",      "loop-back from audit"),
+        (P.ACCENT,   False, "Agent (LLM)",   "proposer · auditor"),
+        (P.DET,      True,  "Deterministic", "pipelines"),
+        (P.ACCENT_3, False, "Human review",  "decision-in-the-loop"),
+        (P.ACCENT_5, False, "Evaluation",    "benchmarks, ablations"),
+        (P.ACCENT_4, False, "Recuration",    "loop-back from audit"),
     ]
-    lx = cross_x + 9.5
-    lw = (cross_w - 10) / len(legend_specs)
-    for i, (color, is_det, label, note) in enumerate(legend_specs):
-        _legend_chip(ax, lx + i * lw, leg_y, color,
-                     is_det=is_det, label=label, note=note)
+    legend_block(ax, x=cross_x, y_top=18, specs=legend_specs,
+                 title="Legend",
+                 chip_w=3.5, chip_h=1.8, row_gap=0.5,
+                 label_fontsize=10.0, title_fontsize=10.5)
 
     # Source caption (bottom-right)
     ax.text(99.5, 0.5, "source: examples/lifecycle_example.py",
-            ha="right", va="bottom", color=P.SUBTLE, fontsize=7.5)
+            ha="right", va="bottom", color=P.SUBTLE, fontsize=9.0)
+
+    # Strip <clipPath> wrappers before save — see SKILL.md SVG round-trip rules.
+    svg_safe(ax)
 
     plt.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
     out = Path(__file__).resolve().parent

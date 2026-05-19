@@ -12,8 +12,24 @@ description: >
   like ticket queues or evaluation batches), `ensemble_proposer`
   (parallel mini-boxes for "union of two proposers"), `perf_gauge`
   (horizontal F1 bar with optional curator-corrected overlay;
-  luminosity-balanced palette), `arrow` (thick arrows, not
-  spindly), `box`, and `fit_text`. Plus
+  luminosity-balanced palette), `lane_arrow` (lane-aware forward
+  arrow: same-lane straight, cross-lane smooth L via `angle3` —
+  replaces the bent small-rad `arc3` arcs), `legend_block` (compact
+  vertical legend, chip-left + text-right, position-parameterised),
+  `oval` (pill / fully-rounded rectangle for molecule-like nodes),
+  `circle` (true circle for hub / radial-diagram centres),
+  `cylinder` (the conventional database-of-record symbol — visually
+  distinct from pills/rectangles to mark the system-of-record),
+  `container` (dashed grouping rectangle for "these belong together"
+  groupings like Front-End / Back-End mega-regions),
+  `labeled_arrow` (arrow + label in one call — the general
+  "edges-with-labels" pattern: state-machine transitions, enzymes,
+  protocols, ER cardinalities), `gantt_bar` + `today_line` +
+  `GanttTask` (flat / modern Gantt-chart primitives sharing the
+  skill's palette and aesthetic), `arrow` (thick arrows; `linestyle`
+  and `style` knobs cover dashed, open-headed, two-way `<|-|>`, and
+  headless variants), `box` (with `linestyle` for dashed borders and
+  `text_style` for italic labels), and `fit_text`. Plus
   `pavlab_arch.layout` with three canonical figure shapes
   (`slide` 16:9, `square` 1:1, `wide_half` 3:1 for full-page-width /
   half-height) and a `grid_columns` helper that lays out N columns
@@ -53,6 +69,15 @@ When asked to make a figure that:
 - diagrams a workflow lifecycle / state machine with feedback
   loops and parallel tracks (see `Lifecycle state diagrams`
   below)
+- diagrams a network / pathway / state-machine with **labeled
+  arrows** (`labeled_arrow` — see the labeled-edges section)
+- shows a **schedule / roadmap** as a Gantt chart with status-
+  encoded bars (`gantt_bar`, `today_line`, `GanttTask` — see the
+  Gantt charts section)
+- shows a **software / hardware stack** as horizontal tier bands
+  (Client / Frontend / Services / Storage) with components in each
+  tier connected by labeled wire-protocol arrows (see Software stack
+  diagrams below)
 
 Read this SKILL.md and `python/pavlab_arch/primitives.py` before
 writing any matplotlib code for these tasks. Reuse the helpers —
@@ -206,6 +231,127 @@ If the band you'd route through doesn't exist, consider whether
 the dependency is real — sometimes the answer is "drop the
 arrow; the order is implicit in the layout."
 
+### Labeled edges — the general "arrow with a label" pattern
+
+Whenever a diagram has things connected by arrows AND the arrow
+itself carries information, use `labeled_arrow`. This is the
+**labeled-edge** pattern, and it shows up in every diagram family
+that isn't a pure pipeline:
+
+- state-machine transitions (`"on_failure"`, `"timeout"`)
+- pathway diagrams (enzyme names on metabolic arrows)
+- network topology (protocol or bandwidth on links)
+- ER diagrams (cardinality: `1..*`, `0..1`)
+- class associations (`"uses"`, `"depends on"`, `"contains"`)
+- Sankey edge labels, dependency reasons, control-flow conditions
+
+```python
+from pavlab_arch.primitives import labeled_arrow
+from pavlab_arch import palette as P
+
+labeled_arrow(ax, x1, y1, x2, y2, "on_failure",
+              connectionstyle="arc3,rad=-0.13",
+              shrinkA=6, shrinkB=6,
+              label_color=P.ACCENT, label_side=5.0)
+```
+
+**Conventions:**
+
+- The label sits **off the arrow path** (perpendicular offset from
+  the chord midpoint via `label_side`). Putting the label ON the
+  arrow forces the line and the text to compete for the same pixels;
+  putting it off keeps both legible.
+- Default label style is **italic + ACCENT-colored + bold + 7.5pt**
+  — quiet enough not to compete with the structural arrow at typical
+  figsizes, but legible.
+- `label_side > 0` puts the label to the **left of the arrow's
+  direction of travel** (for a clockwise cycle, "left" = outward;
+  for left-to-right arrows, "left" = up). Pass a negative value to
+  put the label on the right.
+- `label_along ∈ [0, 1]` slides the label along the chord (`0.5` =
+  midpoint, default; `0.2` near the start, `0.8` near the end). Use
+  to disambiguate when multiple labeled arrows fan out from one
+  node.
+- All `arrow` kwargs pass through (`connectionstyle`, `shrinkA`,
+  `linestyle`, `style="-|>"` vs `"->"`, etc.), so the same primitive
+  handles curved, dashed, open-head, etc.
+
+The Krebs cycle example uses one `labeled_arrow` call per cycle
+edge to draw the curved arrow AND the italic enzyme name in a single
+gesture — that's the canonical use of this helper.
+
+### Box and arrow style conventions (composable knobs)
+
+`box`, `oval`, `circle`, and `arrow` take low-level style knobs that
+compose into a small grammar of visual conventions. Pick from this
+grammar instead of inventing new patterns ad-hoc — the eye learns the
+encoding once and reads every figure in the skill the same way.
+
+**Box styles** (apply to `box`, `oval`, `circle`):
+
+| convention                  | params                                                 | use for |
+|-----------------------------|--------------------------------------------------------|---------|
+| **actor**                   | `stage_box(...)` (current helper)                      | pipeline stages, lifecycle states |
+| **passive intermediate**    | `fc=GRID` or `fc=tint(DET)`, `ec=DET`, `lw=1.0`        | metabolites in a pathway, substrates flowing through |
+| **catalyst / annotation**   | `fc='white'`, `ec=ACCENT`, `lw=1.3`, italic text       | enzymes, helper notes — usually italic |
+| **transient / spawned**     | + `linestyle=(0, (3, 2))` for dashed border            | byproducts that leave the cycle, side-effects |
+| **emphasized input**        | `fc='white'`, `ec=ACCENT_5`, solid border              | named inputs that drive the flow (distinguished from byproducts by solid border) |
+
+`oval(cx, cy, w, h)` is a pill (fully rounded rectangle, default
+`rounding=min(w,h)/2`). Use for "molecule-like" nodes — chemical
+species, ER entities, anything that should read as "a thing flowing
+through" rather than "a stage of work."
+
+`circle(cx, cy, r)` is a true circle. Use for single-letter / single-
+digit nodes or for the centre of a radial diagram (cycle marker,
+hub).
+
+**Arrow styles** (apply to `arrow`):
+
+| convention                  | params                                                 | use for |
+|-----------------------------|--------------------------------------------------------|---------|
+| **primary flow** (default)  | `style="-|>"`, `lw=2.0`, solid                         | main pipeline arrows, cycle direction |
+| **secondary / side flow**   | `style="->"`, `lw=1.0`, open arrowhead                 | byproduct release, input uptake — anything off the main spine |
+| **feedback / out-of-band**  | + `linestyle=(0, (5, 3))` dashed                       | rework loops, recall loops, post-shipment feedback |
+| **relationship (no head)**  | `style="-"`                                            | "X is related to Y" without directionality |
+
+`shrinkA` / `shrinkB` pull endpoints inside the chord — essential when
+the arrow connects shape centres but should visually terminate at the
+shape boundary (cycle arrows that connect pill centres but should look
+like they touch pill edges).
+
+### Legends: use `legend_block`, never inline label+note stacked inside a chip
+
+A legend chip is too small to vertically stack a bold label and a
+muted note inside it — at any reasonable figsize the two texts
+collide. Put the chip on the LEFT and the text on the RIGHT,
+single line per chip, with the note in `SUBTLE` colour to the
+right of the bold label. `legend_block` does this and stacks the
+rows vertically into a compact rectangle:
+
+```python
+from pavlab_arch.primitives import legend_block
+from pavlab_arch import palette as P
+
+legend_block(ax, x=4, y_top=19, specs=[
+    # (color, is_det, label, note)
+    (P.ACCENT,          False, "Skilled labor", "worker assembly"),
+    (P.DET,             True,  "Automated",     "robotic / machined"),
+    (P.ACCENT_3,        False, "Decision",      "design · inspection"),
+    ((P.DET, P.ACCENT), False, "Hybrid stage",  "robot + worker"),  # tuple = dual chip
+    (P.ACCENT_4,        False, "Feedback paths","rework + recall"),
+], title="Actor encoding", chip_h=2.0, row_gap=0.8)
+```
+
+The block is fully position-parameterised — to move the legend
+to another corner of the figure, change only `x` and `y_top`. It
+grows DOWN from `y_top` and RIGHT of `x`; the function returns
+`(width, height)` so a caller can lay out adjacent content.
+
+A tuple `(left_color, right_color)` in the colour slot renders a
+miniature `dual_stage_box` chip — useful for legending a hybrid
+actor.
+
 ## SVG round-trip / Illustrator compatibility
 
 Figures get opened in Illustrator (or Inkscape) for the last
@@ -291,7 +437,9 @@ from pavlab_arch.layout import figure
 from pavlab_arch.palette import ACCENT, ACCENT_2, ACCENT_3, ACCENT_4, DET
 from pavlab_arch.primitives import (
     stage_box, dual_stage_box, stack_box,
-    perf_gauge, ensemble_proposer, arrow, box,
+    perf_gauge, ensemble_proposer,
+    lane_arrow, legend_block,
+    arrow, box,
 )
 
 apply_rcparams()
@@ -384,12 +532,62 @@ arrives at the bottom of the destination — visually obvious in
 review but easy to ship if you forgot which way matplotlib's y
 points.
 
-**Style of the cross-lane edge.** Straight diagonals work
-cleanly when the two lanes are ~15+ axis units apart and the
-columns are adjacent — the diagonal slope is gentle and the
-arrow doesn't cross any same-lane stages. Skip the
-`connectionstyle` arc entirely. Use arcs only when the geometry
-forces the diagonal through another box.
+**Style of the cross-lane edge — use `lane_arrow` with the default
+`cross_mode="smooth_l"`.** Cross-lane forks/joins render as
+L-paths with rounded corners (pipe-elbow style) via
+`connectionstyle="angle,...,rad=corner_rad"`.
+
+**Routing rule — vertical near source, horizontal near target.**
+This asymmetric rule sidesteps an obstacle that bites the naive
+version: in a typical fork/join, the source's column in the
+parallel-tracks region has a same-column stage on the OPPOSITE
+lane (e.g. paint shop on lane 0 and powertrain on lane 1, same
+column 3). A naive V-then-H routing for the join would put the
+vertical leg in the source's column at the *target's* lane height
+— right through that same-column stage. The asymmetric rule keeps
+the vertical leg on the source's side, where the inter-lane band
+is empty.
+
+- **Going DOWN (fork)** — V-then-H "down then right". Exit the
+  source's BOTTOM at `src_frac` across its width, descend through
+  the inter-lane band (empty in source's column, which is in the
+  single-lane region before the parallel tracks), turn right at
+  a smooth corner of radius `corner_rad`, horizontal into the
+  target's LEFT at `dst_frac` of its height. Arrowhead points
+  RIGHT.
+
+- **Going UP (join)** — H-then-V "right then up". Exit the source's
+  RIGHT at `src_frac` up its height, traverse horizontally through
+  the inter-lane band into the target's column (empty on source's
+  lane, since the target's column has the destination on the other
+  lane), turn up at a smooth corner of radius `corner_rad`, vertical
+  into the target's BOTTOM at `dst_frac` across its width.
+  Arrowhead points UP.
+
+The arrowhead direction differs between fork (→) and join (↑),
+but this matches the semantics: fork is forward progression on the
+target's lane, join is the source rising up to merge into the
+target.
+
+Why not the old `arc3,rad=±0.15` cross-lane arc: on short chords
+(adjacent columns), small-rad `arc3` renders as a bent / cusp-like
+path. Why not `angle3`: it's a Bezier with control at the corner
+intersection, and on tight geometry the curve collapses into a
+near-cusp. The `angle,rad=N` style draws explicit straight segments
+joined by a circular arc of radius N — a true pipe elbow. Why not
+a straight diagonal: it competes with the same-source same-lane
+edge and reads ambiguously.
+
+```python
+from pavlab_arch.primitives import lane_arrow
+# Same-lane and cross-lane both handled — no per-edge branching:
+for src, dst in FORWARD_EDGES:
+    lane_arrow(ax, centres[src], centres[dst],
+               color=P.SUBTLE, lw=2.0, mut=14)
+# Override defaults if the geometry forces it:
+lane_arrow(ax, src, dst, cross_mode="diag")       # straight diagonal
+lane_arrow(ax, src, dst, cross_mode="arc", arc_rad=-0.3)  # arc3
+```
 
 The skeleton:
 
@@ -503,6 +701,200 @@ two-row cross-cutting layer + legend strip:
 Squeezing more than 8 stages or adding a third cross-cutting row
 pushes you to `figsize=(16, 8.5)` and bumps row heights up.
 
+## Gantt charts
+
+For schedule / roadmap views — anywhere you need to show tasks with
+planned spans, progress, and status — use the Gantt primitives. They
+share the same clean / flat / modern aesthetic as the rest of the
+skill (matching palette, lab-style spines off, y-axis grid off,
+left-aligned title), so a Gantt chart in a deck reads as part of
+the same visual family as the architecture diagrams.
+
+```python
+from pavlab_arch.primitives import GanttTask, gantt_bar, today_line
+
+tasks = [
+    GanttTask("Wireframes",       2.0, 3.5, 3.5, "done",     "Design"),
+    GanttTask("Visual design",    3.0, 4.5, 3.5, "inflight", "Design"),
+    GanttTask("Auth migration",   3.5, 5.0, 0.0, "blocked",  "Engineering",
+              note="Blocked on infra"),
+    GanttTask("Perf hardening",   6.0, 7.5, 0.0, "deferred", "QA"),
+    # ...
+]
+
+for i, t in enumerate(reversed(tasks)):
+    gantt_bar(ax, i,
+              plan_start=t.plan_start, plan_end=t.plan_end,
+              done_end=t.done_end, status=t.status)
+
+today_line(ax, x=3.5, label="today")
+```
+
+### Status grammar
+
+Each task's *remaining* (unfilled) portion is painted by status; the
+*done* portion is always emerald. The five statuses cover every
+schedule state I've found in practice:
+
+| status      | remaining overlay style                              |
+|-------------|------------------------------------------------------|
+| `"done"`    | nothing (the whole bar is the emerald done overlay)  |
+| `"inflight"`| amber semi-transparent fill (ACCENT_3, alpha 0.55)   |
+| `"planned"` | nothing (planned-bar gray-200 shows through)         |
+| `"blocked"` | red hatched fill (ACCENT_4 edge, `hatch="//"`)       |
+| `"deferred"`| dotted hatched fill (SUBTLE edge, `hatch=".."`)      |
+
+### Conventions for Gantt layouts
+
+- **Rows reversed for display**: iterate `reversed(tasks)` when
+  placing bars so the FIRST task in your `tasks` list sits at the
+  TOP of the chart. Matplotlib's `barh` increases y upward; people
+  read top-to-bottom.
+- **Category bands**: group tasks by `task.category`; render
+  alternating categories with a `SOFT_BG` `axhspan` and put the
+  category name at the right margin, vertically centered on the
+  group. This replaces explicit category divider lines, which add
+  noise.
+- **X-axis ticks** can be any monotonic numeric scale — encode dates
+  as floats (`(date - epoch).days / 7` for weeks), session counters,
+  sprint numbers. The primitive doesn't care; the tick labels are
+  yours to set.
+- **Y-grid off, X-grid on**: lab style. `ax.yaxis.grid(False)`,
+  `ax.xaxis.grid(True, color=GRID, linewidth=0.6)`. Spines off for
+  the flat look.
+- **Today line** via `today_line(ax, x)` — dashed SUBTLE vertical
+  with a small "today" annotation positioned just below the top of
+  the chart.
+- **Legend at the bottom**: use matplotlib `Patch`es for the status
+  swatches (the gantt_bar primitive doesn't auto-build a legend —
+  it's a low-level brick). See the example file for the patch
+  recipes.
+
+See `examples/gantt_chart_example.py` for a complete render.
+
+## Software stack diagrams
+
+For onboarding docs, architecture decision records, system overviews
+— anywhere you need to show what runs where and how the pieces talk
+to each other. The canonical layout is **horizontal tier bands
+stacked vertically**, with components in each tier and labeled
+arrows between tiers.
+
+### Layout
+
+A typical stack figure has four or five tiers, each rendered as a
+soft `SOFT_BG` rounded-rectangle band with the tier name in italic
+`SUBTLE` text in the left margin:
+
+```
+  Client     ┌─────────────────────────────────────────────────┐
+             │                  [Browser]                      │
+             └─────────────────────────────────────────────────┘
+  Frontend   ┌─────────────────────────────────────────────────┐
+             │    [Curation UI]            [Browser UI]        │
+             └─────────────────────────────────────────────────┘
+  Services   ┌─────────────────────────────────────────────────┐
+             │  [Agent svc]   [REST]   [External · dashed]     │
+             └─────────────────────────────────────────────────┘
+  Storage    ┌─────────────────────────────────────────────────┐
+             │  ( SQLite )  ( FAISS )  ( MySQL )  ( H2 )       │
+             └─────────────────────────────────────────────────┘
+```
+
+The pattern is reusable for any stack diagram — swap the tier names,
+swap the components, keep the band-and-component structure.
+
+### Shape conventions
+
+- **Services / UI / clients are rectangles** (`box` or the inline
+  `tech_box` helper in the example). The rectangle is "a thing
+  running" — a process, an app, a service.
+- **Aux data stores are pills** (`oval`). The pill is "a thing
+  sitting" — a cache, a vector index, a file-based store, a
+  test-only DB. Shape difference tells the reader "service vs
+  storage" without reading any text.
+- **Primary / production databases are cylinders** (`cylinder`) —
+  the conventional database symbol with an elliptical top, vertical
+  sides, and a half-elliptical bottom. Use this for the system-of-
+  record (the durable, business-critical store). The cylinder vs
+  pill split lets a reader pick out "the real DB" from "the
+  indexes / caches / scratch stores" at a glance, even within the
+  storage tier.
+- **External / third-party services use a dashed border**
+  (`box(..., linestyle=(0, (3, 2)))`). Signals "we call this, we
+  don't own it."
+- **Logical groupings use `container`** — a dashed rounded
+  rectangle around related elements, with a bold label at the top-
+  left. Use to mark "Front End / Back End" mega-regions, "DMZ vs
+  internal", "pre-prod vs prod", etc. Distinct from `tier_band`
+  (soft-filled background, no border) because the container has an
+  explicit border — "these belong together as a unit," vs the band
+  which says "these are the same layer."
+
+### Colour conventions
+
+- ACCENT (blue) — frontend / UI tier
+- ACCENT_3 (amber) — backend services tier
+- ACCENT_2 (green) — durable / production data stores
+- ACCENT_5 (violet) — vector / ML-adjacent stores OR external services
+- DET (slate) — neutral / client / browser
+
+Pick consistently across the figure. The eye learns "blue = JS, amber
+= backend, green = DB" within the first few seconds, then reads
+faster.
+
+### Arrows
+
+Use `labeled_arrow` for every inter-tier connection. The label is the
+**wire protocol or contract** (`HTTPS`, `JSON`, `JDBC`, `mmap`,
+`file`, `gRPC`, `Kafka`, etc.). Default label styling — italic
+ACCENT 7.5pt — is intentionally quiet; override `label_color` to
+`SUBTLE` for an even quieter feel when the structural arrow is doing
+the load-bearing work.
+
+**Bidirectional flow is the common case**, not one-way. A frontend
+calling a backend is request-AND-response; a service reading-AND-
+writing a database is bidirectional too. Encode this with
+`style="<|-|>"` (filled arrowheads at both ends). Reserve one-way
+arrows (`style="-|>"`) for genuinely-one-way relationships: emit-
+only sinks, fire-and-forget queues, append-only logs. The two-way
+arrow is the default for any "X talks to Y" wire.
+
+### Layout-first, arc-around-as-last-resort
+
+If a connection would have to **arc over another box** to reach its
+target, prefer rearranging the layout so the target sits adjacent to
+the source — eliminating the need for the arc entirely. A labeled
+arrow drawn as a clean short segment reads better than the same
+arrow looping over a same-tier obstacle, no matter how nicely the
+arc is tuned.
+
+In the software-stack example the external LLM API was originally
+placed at the far right of the services tier, which forced its
+arrow from Curation agents to arc up over Gemma REST. The fix
+wasn't a nicer arc — it was placing the LLM API immediately
+adjacent to Curation agents (with `tech_box(..., dashed=True)` for
+the external styling). The same rule applies in any diagram family:
+**move boxes before you route arrows around them.**
+
+Arcs over obstacles (`connectionstyle="arc3,rad=-N"`) are still
+appropriate when the layout is locked by other constraints — long-
+span feedback loops (e.g. the recall U-shape in the IC-car figure),
+or cross-cutting layer arrows where the box arrangement is
+load-bearing. But for inter-tier flows in a stack diagram, you
+almost always have enough layout freedom to skip them.
+
+### Inline `tech_box` pattern
+
+Each service / app box typically has a bold component name on top
+and a muted multi-line tech-stack list below — "Curation UI" /
+"React 18 · TypeScript · Vite / TanStack Query · Tailwind". The
+example file ships an inline `tech_box(ax, x, y, w, h, title,
+tech_lines, color)` helper for this; copy it if you want the same
+layout in your own stack figure.
+
+See `examples/software_stack_example.py` for a complete render.
+
 ## Examples
 
 `examples/lifecycle_example.py` (wide_half, 15×7.4)
@@ -518,3 +910,67 @@ columns are pipeline stages, gauges on the right show
 per-method F1. Demonstrates `ensemble_proposer` (one row uses
 two parallel proposers), `perf_gauge` with a curator-corrected
 overlay, and the right-aligned method-name convention.
+
+`examples/software_stack_example.py` (slide, 13.33×7.5)
+— layered software stack diagram modelled on the gemma-curation-ui
+ecosystem (two React apps over a Python agents service + a Java
+Spring REST service, all backed by SQLite / FAISS / MySQL / H2,
+plus an external LLM API). Demonstrates the **tier-band** layout
+(Client / Frontend / Services / Storage) with `SOFT_BG` background
+containers + left-margin italic tier labels, the
+**rectangle / pill / cylinder** shape grammar (services / aux
+stores / system-of-record DB), the **dashed-border** convention
+for external services, **bidirectional `style="<|-|>"` arrows**
+for every inter-tier wire (request + response), and `labeled_arrow`
+for protocol labels. Demonstrates the **layout-first principle**:
+the external API sits adjacent to its caller (Curation agents)
+instead of across the row, so no arc-over-obstacle routing is
+needed. The inline `tech_box` helper (component name + multi-line
+tech-stack list) is reusable for any stack figure.
+
+`examples/gantt_chart_example.py` (~9×variable)
+— flat / modern Gantt chart showing 15 tasks across 5 categories
+(Discovery, Design, Engineering, QA & polish, Release) with all
+five status states (done, in flight, planned, blocked, deferred)
+visible. Demonstrates the `GanttTask` + `gantt_bar` + `today_line`
+primitives plus the conventions for category bands, today reference
+line, x-axis tick labels, and bottom-row legend. Adapt by swapping
+the `TASKS` list and adjusting `X_TICKS` / `X_LABELS` for your
+time encoding (sessions, weeks, sprints, calendar dates).
+
+`examples/krebs_cycle_example.py` (9.5×9.5)
+— real-world non-LLM example demonstrating the extended box / arrow
+style conventions in a domain where the visual grammar is naturally
+non-pipeline: the Krebs cycle (citric acid cycle). Eight metabolite
+pills (`oval(... ec=DET, lw=1.0)`, passive intermediates) arranged in
+a circle, eight curved cycle arrows (`-|>` filled), enzymes as italic
+ACCENT-colored text on the arcs (no box, the standard biochem
+convention), eight byproduct/input chips as dashed-or-solid-border
+pills outside the cycle (`oval(... linestyle=(0,(3,2)))` for dashed
+transients vs solid for the emphasized Acetyl-CoA input), and thin
+open-arrowhead side arrows (`style="->", lw=1.0`) for byproduct
+release and input uptake. A central `circle(... text="TCA")` marks
+the cycle topology. Use as the reference when establishing a
+multi-style convention diagram outside the typical software-pipeline
+domain.
+
+`examples/ic_car_assembly_example.py` (15.5×5.5)
+— real-world (non-bio, non-LLM) architecture: internal-combustion
+vehicle production from design through ship. Demonstrates that
+the colour grammar adapts cleanly to physical manufacturing
+(blue = skilled labor, slate = robotic/automated, amber =
+decision/inspection, red = feedback). The fork at `design` runs
+parallel body and powertrain lines through three columns before
+converging at `marriage` — the canonical use case for
+`dual_stage_box` since a real marriage stage is genuinely
+co-actor (robotic gantry lift + human alignment). Includes two
+feedback channels at different time scales: an in-shift rework
+loop (short solid red arc, QC → Final) and a post-shipment
+recall loop (long dashed red U-shape, Ship → Design). The
+recall is routed as an explicit U (down → across → up) instead
+of a deep `arc3` arc because a long-chord arc would either pass
+through the parallel lane stages or collide with the legend —
+the U-shape uses the empty band between the bottom lane and the
+legend, and reads unambiguously as a long-range out-of-band
+channel. Use as the reference when you need two feedback paths
+at different scales in the same figure.

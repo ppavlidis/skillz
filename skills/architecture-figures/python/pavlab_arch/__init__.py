@@ -9,7 +9,12 @@ Public surface:
         tint,
     )
     from pavlab_arch.primitives import (
-        box, arrow, stage_box, perf_gauge, ensemble_proposer,
+        box, oval, circle, cylinder, container,
+        arrow, labeled_arrow,
+        stage_box, dual_stage_box, stack_box,
+        ensemble_proposer, perf_gauge,
+        lane_arrow, legend_block,
+        gantt_bar, today_line, GanttTask,
         fit_text,
     )
     from pavlab_arch.layout import (

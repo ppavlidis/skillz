@@ -30,6 +30,7 @@ sys.path.insert(0, str(_SKILL))
 import matplotlib.pyplot as plt  # noqa: E402
 
 from pavlab_arch.style import apply_rcparams  # noqa: E402
+from pavlab_arch.layout import svg_safe  # noqa: E402
 from pavlab_arch.palette import (  # noqa: E402
     ACCENT, ACCENT_3, ACCENT_4, DET,
     BAR_FACTOR, BAR_TAG, TEXT,
@@ -101,9 +102,9 @@ def main() -> int:
                 ha="center", va="center", fontsize=10,
                 color=TEXT, fontweight="bold")
     ax.text(GAUGE_X, header_y,        "primary F1",
-            ha="left", va="center", fontsize=9, color=TEXT, fontweight="bold")
+            ha="left", va="center", fontsize=10.5, color=TEXT, fontweight="bold")
     ax.text(GAUGE_X, header_y - 0.18, "secondary F1",
-            ha="left", va="center", fontsize=9, color=TEXT, fontweight="bold")
+            ha="left", va="center", fontsize=10.5, color=TEXT, fontweight="bold")
 
     for i, (name, stages, fF, tF, curF, curT) in enumerate(METHODS):
         y_top = fig_h - 0.7 - (i + 1) * (row_h + row_gap) + row_gap
@@ -141,6 +142,7 @@ def main() -> int:
         perf_gauge(ax, GAUGE_X, y_center - 0.22, gauge_w, gauge_h,
                    tF, color=BAR_TAG, curator_value=curT)
 
+    svg_safe(ax)
     out = Path(__file__).resolve().parent / "methods_comparison_example.svg"
     fig.savefig(out, format="svg", bbox_inches="tight")
     fig.savefig(out.with_suffix(".png"), format="png", dpi=150,

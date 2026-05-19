@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1108.08pt" height="402.48pt" viewBox="0 0 1108.08 402.48" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-05-18T21:58:35.755755</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.5.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 402.48 
+L 1108.08 402.48 
+L 1108.08 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 7.2 395.28 
+L 1100.88 395.28 
+L 1100.88 7.2 
+L 7.2 7.2 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 52.04088 143.028 
+L 166.33044 143.028 
+Q 167.42412 143.028 167.42412 142.63992 
+L 167.42412 100.72728 
+Q 167.42412 100.3392 166.33044 100.3392 
+L 52.04088 100.3392 
+Q 50.9472 100.3392 50.9472 100.72728 
+L 50.9472 142.63992 
+Q 50.9472 143.028 52.04088 143.028 
+z
+" style="fill: #fef3c7; stroke: #f59e0b; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 182.954376 143.028 
+L 298.993824 143.028 
+Q 299.21256 143.028 299.21256 142.950384 
+L 299.21256 100.416816 
+Q 299.21256 100.3392 298.993824 100.3392 
+L 182.954376 100.3392 
+Q 182.73564 100.3392 182.73564 100.416816 
+L 182.73564 142.950384 
+Q 182.73564 143.028 182.954376 143.028 
+z
+" style="fill: #f1f5f9; stroke: #6b7280; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 182.954376 247.8096 
+L 298.993824 247.8096 
+Q 299.21256 247.8096 299.21256 247.731984 
+L 299.21256 205.198416 
+Q 299.21256 205.1208 298.993824 205.1208 
+L 182.954376 205.1208 
+Q 182.73564 205.1208 182.73564 205.198416 
+L 182.73564 247.731984 
+Q 182.73564 247.8096 182.954376 247.8096 
+z
+" style="fill: #f1f5f9; stroke: #6b7280; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 314.742816 143.028 
+L 430.782264 143.028 
+Q 431.001 143.028 431.001 142.950384 
+L 431.001 100.416816 
+Q 431.001 100.3392 430.782264 100.3392 
+L 314.742816 100.3392 
+Q 314.52408 100.3392 314.52408 100.416816 
+L 314.52408 142.950384 
+Q 314.52408 143.028 314.742816 143.028 
+z
+" style="fill: #f1f5f9; stroke: #6b7280; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 315.61776 247.8096 
+L 429.90732 247.8096 
+Q 431.001 247.8096 431.001 247.42152 
+L 431.001 205.50888 
+Q 431.001 205.1208 429.90732 205.1208 
+L 315.61776 205.1208 
+Q 314.52408 205.1208 314.52408 205.50888 
+L 314.52408 247.42152 
+Q 314.52408 247.8096 315.61776 247.8096 
+z
+" style="fill: #dbeafe; stroke: #2563eb; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 446.531256 143.028 
+L 562.570704 143.028 
+Q 562.78944 143.028 562.78944 142.950384 
+L 562.78944 100.416816 
+Q 562.78944 100.3392 562.570704 100.3392 
+L 446.531256 100.3392 
+Q 446.31252 100.3392 446.31252 100.416816 
+L 446.31252 142.950384 
+Q 446.31252 143.028 446.531256 143.028 
+z
+" style="fill: #f1f5f9; stroke: #6b7280; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 447.4062 247.8096 
+L 561.69576 247.8096 
+Q 562.78944 247.8096 562.78944 247.42152 
+L 562.78944 205.50888 
+Q 562.78944 205.1208 561.69576 205.1208 
+L 447.4062 205.1208 
+Q 446.31252 205.1208 446.31252 205.50888 
+L 446.31252 247.42152 
+Q 446.31252 247.8096 447.4062 247.8096 
+z
+" style="fill: #dbeafe; stroke: #2563eb; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 578.10096 143.028 
+L 578.10096 100.3392 
+L 659.634804 100.3392 
+L 613.044036 143.028 
+z
+" style="fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 2.2"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 613.044036 143.028 
+L 659.634804 100.3392 
+L 694.57788 100.3392 
+L 694.57788 143.028 
+z
+" style="fill: #dbeafe; stroke: #2563eb; stroke-width: 2.2"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 710.98308 143.028 
+L 825.27264 143.028 
+Q 826.36632 143.028 826.36632 142.63992 
+L 826.36632 100.72728 
+Q 826.36632 100.3392 825.27264 100.3392 
+L 710.98308 100.3392 
+Q 709.8894 100.3392 709.8894 100.72728 
+L 709.8894 142.63992 
+Q 709.8894 143.028 710.98308 143.028 
+z
+" style="fill: #dbeafe; stroke: #2563eb; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 842.77152 143.028 
+L 957.06108 143.028 
+Q 958.15476 143.028 958.15476 142.63992 
+L 958.15476 100.72728 
+Q 958.15476 100.3392 957.06108 100.3392 
+L 842.77152 100.3392 
+Q 841.67784 100.3392 841.67784 100.72728 
+L 841.67784 142.63992 
+Q 841.67784 143.028 842.77152 143.028 
+z
+" style="fill: #fef3c7; stroke: #f59e0b; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 973.685016 143.028 
+L 1089.724464 143.028 
+Q 1089.9432 143.028 1089.9432 142.950384 
+L 1089.9432 100.416816 
+Q 1089.9432 100.3392 1089.724464 100.3392 
+L 973.685016 100.3392 
+Q 973.46628 100.3392 973.46628 100.416816 
+L 973.46628 142.950384 
+Q 973.46628 143.028 973.685016 143.028 
+z
+" style="fill: #f1f5f9; stroke: #6b7280; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_15">
+    <path d="M 167.97096 121.6836 
+Q 175.07988 121.6836 179.952732 121.6836 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 174.352732 118.8836 
+L 179.952732 121.6836 
+L 174.352732 124.4836 
+L 174.352732 118.8836 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_16">
+    <path d="M 132.481044 143.028 
+L 132.481044 222.4652 
+Q 132.481044 226.4652 136.481044 226.4652 
+L 180.499572 226.4652 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 174.899572 223.6652 
+L 180.499572 226.4652 
+L 174.899572 229.2652 
+L 174.899572 223.6652 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_17">
+    <path d="M 299.7594 121.6836 
+Q 306.86832 121.6836 311.741172 121.6836 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 306.141172 118.8836 
+L 311.741172 121.6836 
+L 306.141172 124.4836 
+L 306.141172 118.8836 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_18">
+    <path d="M 299.7594 226.4652 
+Q 306.86832 226.4652 311.741172 226.4652 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 306.141172 223.6652 
+L 311.741172 226.4652 
+L 306.141172 229.2652 
+L 306.141172 223.6652 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_19">
+    <path d="M 431.54784 121.6836 
+Q 438.65676 121.6836 443.529612 121.6836 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 437.929612 118.8836 
+L 443.529612 121.6836 
+L 437.929612 124.4836 
+L 437.929612 118.8836 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_20">
+    <path d="M 431.54784 226.4652 
+Q 438.65676 226.4652 443.529612 226.4652 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 437.929612 223.6652 
+L 443.529612 226.4652 
+L 437.929612 229.2652 
+L 437.929612 223.6652 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_21">
+    <path d="M 563.33628 121.6836 
+Q 570.4452 121.6836 575.318052 121.6836 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 569.718052 118.8836 
+L 575.318052 121.6836 
+L 569.718052 124.4836 
+L 569.718052 118.8836 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_22">
+    <path d="M 562.78944 217.92744 
+L 632.33942 217.92744 
+Q 636.33942 217.92744 636.33942 213.92744 
+L 636.33942 145.264068 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 633.53942 150.864068 
+L 636.33942 145.264068 
+L 639.13942 150.864068 
+L 633.53942 150.864068 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_23">
+    <path d="M 695.12472 121.6836 
+Q 702.23364 121.6836 707.106492 121.6836 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 701.506492 118.8836 
+L 707.106492 121.6836 
+L 701.506492 124.4836 
+L 701.506492 118.8836 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_24">
+    <path d="M 826.91316 121.6836 
+Q 834.02208 121.6836 838.894932 121.6836 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 833.294932 118.8836 
+L 838.894932 121.6836 
+L 833.294932 124.4836 
+L 833.294932 118.8836 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_25">
+    <path d="M 958.7016 121.6836 
+Q 965.81052 121.6836 970.683372 121.6836 
+" style="fill: none; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 965.083372 118.8836 
+L 970.683372 121.6836 
+L 965.083372 124.4836 
+L 965.083372 118.8836 
+z
+" style="fill: #6b7280; stroke: #6b7280; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_26">
+    <path d="M 870.79707 143.028 
+Q 834.02208 179.80299 798.986343 144.767253 
+" style="fill: none; stroke: #ef4444; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 801.249084 151.555478 
+L 798.986343 144.767253 
+L 805.774568 147.029994 
+L 801.249084 151.555478 
+z
+" style="fill: #ef4444; stroke: #ef4444; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_27">
+    <path d="M 109.18566 309.9024 
+Q 109.18566 226.4652 109.18566 145.264068 
+" style="fill: none; stroke-dasharray: 10,6; stroke-dashoffset: 0; stroke: #ef4444; stroke-width: 2; stroke-linecap: round"/>
+    <path d="M 105.98566 151.664068 
+L 109.18566 145.264068 
+L 112.38566 151.664068 
+L 105.98566 151.664068 
+z
+" style="fill: #ef4444; stroke-dasharray: 10,6; stroke-dashoffset: 0; stroke: #ef4444; stroke-width: 2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_28">
+    <path d="M 52.04088 338.62032 
+L 93.60072 338.62032 
+Q 94.6944 338.62032 94.6944 338.23224 
+L 94.6944 331.2468 
+Q 94.6944 330.85872 93.60072 330.85872 
+L 52.04088 330.85872 
+Q 50.9472 330.85872 50.9472 331.2468 
+L 50.9472 338.23224 
+Q 50.9472 338.62032 52.04088 338.62032 
+z
+" style="fill: #dbeafe; stroke: #2563eb; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_29">
+    <path d="M 51.165936 349.48656 
+L 94.475664 349.48656 
+Q 94.6944 349.48656 94.6944 349.408944 
+L 94.6944 341.802576 
+Q 94.6944 341.72496 94.475664 341.72496 
+L 51.165936 341.72496 
+Q 50.9472 341.72496 50.9472 341.802576 
+L 50.9472 349.408944 
+Q 50.9472 349.48656 51.165936 349.48656 
+z
+" style="fill: #f1f5f9; stroke: #6b7280; stroke-width: 1.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_30">
+    <path d="M 52.04088 360.3528 
+L 93.60072 360.3528 
+Q 94.6944 360.3528 94.6944 359.96472 
+L 94.6944 352.97928 
+Q 94.6944 352.5912 93.60072 352.5912 
+L 52.04088 352.5912 
+Q 50.9472 352.5912 50.9472 352.97928 
+L 50.9472 359.96472 
+Q 50.9472 360.3528 52.04088 360.3528 
+z
+" style="fill: #fef3c7; stroke: #f59e0b; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_31">
+    <path d="M 50.9472 371.21904 
+L 50.9472 363.45744 
+L 81.57024 363.45744 
+L 64.07136 371.21904 
+z
+" style="fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 2.2"/>
+   </g>
+   <g id="patch_32">
+    <path d="M 64.07136 371.21904 
+L 81.57024 363.45744 
+L 94.6944 363.45744 
+L 94.6944 371.21904 
+z
+" style="fill: #dbeafe; stroke: #2563eb; stroke-width: 2.2"/>
+   </g>
+   <g id="patch_33">
+    <path d="M 52.04088 382.08528 
+L 93.60072 382.08528 
+Q 94.6944 382.08528 94.6944 381.6972 
+L 94.6944 374.71176 
+Q 94.6944 374.32368 93.60072 374.32368 
+L 52.04088 374.32368 
+Q 50.9472 374.32368 50.9472 374.71176 
+L 50.9472 381.6972 
+Q 50.9472 382.08528 52.04088 382.08528 
+z
+" style="fill: #fee2e2; stroke: #ef4444; stroke-width: 2.2; stroke-linejoin: miter"/>
+   </g>
+   <g id="matplotlib.axis_1"/>
+   <g id="matplotlib.axis_2"/>
+   <g id="line2d_1">
+    <path d="M 1031.70474 143.028 
+L 1031.70474 309.9024 
+" style="fill: none; stroke-dasharray: 10,6; stroke-dashoffset: 0; stroke: #ef4444; stroke-width: 2"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 1031.70474 309.9024 
+L 109.18566 309.9024 
+" style="fill: none; stroke-dasharray: 10,6; stroke-dashoffset: 0; stroke: #ef4444; stroke-width: 2"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #1f2937; font: 700 15.5px 'Helvetica'; text-anchor: start" x="12.6684" y="33.878356" transform="rotate(-0, 12.6684, 33.878356)">Internal-combustion vehicle assembly — production architecture</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #6b7280; font: 11px 'Helvetica'; text-anchor: start" x="12.6684" y="51.984162" transform="rotate(-0, 12.6684, 51.984162)">Body and powertrain lines run in parallel, converging at the marriage point</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="109.18566" y="119.041413" transform="rotate(-0, 109.18566, 119.041413)">Design</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="109.18566" y="132.154954" transform="rotate(-0, 109.18566, 132.154954)">engineering + CAD</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="240.9741" y="119.117194" transform="rotate(-0, 240.9741, 119.117194)">Press shop</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="240.9741" y="132.081712" transform="rotate(-0, 240.9741, 132.081712)">stamping</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="240.9741" y="223.834732" transform="rotate(-0, 240.9741, 223.834732)">Engine block</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="240.9741" y="236.911358" transform="rotate(-0, 240.9741, 236.911358)">cast · machine</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="372.76254" y="119.053132" transform="rotate(-0, 372.76254, 119.053132)">Body welding</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="372.76254" y="132.129758" transform="rotate(-0, 372.76254, 132.129758)">robot weld to BIW</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="372.76254" y="223.823013" transform="rotate(-0, 372.76254, 223.823013)">Engine asm</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #6b7280; font: italic 6.802238px 'Helvetica'; text-anchor: middle" x="372.76254" y="236.733811" transform="rotate(-0, 372.76254, 236.733811)">block · head · accessories</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="504.55098" y="119.117194" transform="rotate(-0, 504.55098, 119.117194)">Paint shop</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #6b7280; font: italic 7.074327px 'Helvetica'; text-anchor: middle" x="504.55098" y="132.021445" transform="rotate(-0, 504.55098, 132.021445)">e-coat · primer · topcoat</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="504.55098" y="223.887075" transform="rotate(-0, 504.55098, 223.887075)">Powertrain</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #6b7280; font: italic 7.074327px 'Helvetica'; text-anchor: middle" x="504.55098" y="236.803045" transform="rotate(-0, 504.55098, 236.803045)">transmission · drivetrain</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="636.33942" y="119.041413" transform="rotate(-0, 636.33942, 119.041413)">Marriage</text>
+   </g>
+   <g id="text_18">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="636.33942" y="132.116282" transform="rotate(-0, 636.33942, 132.116282)">body onto chassis</text>
+   </g>
+   <g id="text_19">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="768.12786" y="119.087507" transform="rotate(-0, 768.12786, 119.087507)">Final assembly</text>
+   </g>
+   <g id="text_20">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="768.12786" y="132.119798" transform="rotate(-0, 768.12786, 132.119798)">trim · wiring · fluids</text>
+   </g>
+   <g id="text_21">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="899.9163" y="119.105475" transform="rotate(-0, 899.9163, 119.105475)">QC + test</text>
+   </g>
+   <g id="text_22">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="899.9163" y="132.116282" transform="rotate(-0, 899.9163, 132.116282)">dyno · road · audit</text>
+   </g>
+   <g id="text_23">
+    <text style="fill: #1f2937; font: 700 10px 'Helvetica'; text-anchor: middle" x="1031.70474" y="119.203131" transform="rotate(-0, 1031.70474, 119.203131)">Ship</text>
+   </g>
+   <g id="text_24">
+    <text style="fill: #6b7280; font: italic 7.5px 'Helvetica'; text-anchor: middle" x="1031.70474" y="132.090501" transform="rotate(-0, 1031.70474, 132.090501)">logistics to dealer</text>
+   </g>
+   <g id="text_25">
+    <text style="fill: #6b7280; font: italic 8.5px 'Helvetica'; text-anchor: start" x="45.4788" y="94.636212" transform="rotate(-0, 45.4788, 94.636212)">body line</text>
+   </g>
+   <g id="text_26">
+    <text style="fill: #6b7280; font: italic 8.5px 'Helvetica'; text-anchor: start" x="45.4788" y="261.668622" transform="rotate(-0, 45.4788, 261.668622)">powertrain line</text>
+   </g>
+   <g id="text_27">
+    <text style="fill: #ef4444; font: italic 700 10px 'Helvetica'; text-anchor: start" x="946.507068" y="165.724638" transform="rotate(-0, 946.507068, 165.724638)">rework loop</text>
+   </g>
+   <g id="text_28">
+    <text style="fill: #ef4444; font: italic 700 9px 'Helvetica'; text-anchor: middle" x="570.4452" y="300.61125" transform="rotate(-0, 570.4452, 300.61125)">recall feedback  ·  warranty · NHTSA · dealer reports</text>
+   </g>
+   <g id="text_29">
+    <text style="fill: #6b7280; font: italic 8.5px 'Helvetica'; text-anchor: start" x="50.9472" y="327.662144" transform="rotate(-0, 50.9472, 327.662144)">Actor encoding</text>
+   </g>
+   <g id="text_30">
+    <text style="fill: #1f2937; font: 700 8.5px 'Helvetica'; text-anchor: start" x="105.6312" y="336.902372" transform="rotate(-0, 105.6312, 336.902372)">Skilled labor</text>
+   </g>
+   <g id="text_31">
+    <text style="fill: #6b7280; font: italic 8px 'Helvetica'; text-anchor: start" x="180.44832" y="336.76077" transform="rotate(-0, 180.44832, 336.76077)">worker assembly</text>
+   </g>
+   <g id="text_32">
+    <text style="fill: #1f2937; font: 700 8.5px 'Helvetica'; text-anchor: start" x="105.6312" y="347.768612" transform="rotate(-0, 105.6312, 347.768612)">Automated</text>
+   </g>
+   <g id="text_33">
+    <text style="fill: #6b7280; font: italic 8px 'Helvetica'; text-anchor: start" x="160.45632" y="347.641385" transform="rotate(-0, 160.45632, 347.641385)">robotic / machined</text>
+   </g>
+   <g id="text_34">
+    <text style="fill: #1f2937; font: 700 8.5px 'Helvetica'; text-anchor: start" x="105.6312" y="358.634852" transform="rotate(-0, 105.6312, 358.634852)">Decision</text>
+   </g>
+   <g id="text_35">
+    <text style="fill: #6b7280; font: italic 8px 'Helvetica'; text-anchor: start" x="155.45832" y="358.46575" transform="rotate(-0, 155.45832, 358.46575)">design · inspection</text>
+   </g>
+   <g id="text_36">
+    <text style="fill: #1f2937; font: 700 8.5px 'Helvetica'; text-anchor: start" x="105.6312" y="369.456599" transform="rotate(-0, 105.6312, 369.456599)">Hybrid stage</text>
+   </g>
+   <g id="text_37">
+    <text style="fill: #6b7280; font: italic 8px 'Helvetica'; text-anchor: start" x="175.45032" y="369.373865" transform="rotate(-0, 175.45032, 369.373865)">robot + worker</text>
+   </g>
+   <g id="text_38">
+    <text style="fill: #1f2937; font: 700 8.5px 'Helvetica'; text-anchor: start" x="105.6312" y="380.377293" transform="rotate(-0, 105.6312, 380.377293)">Feedback paths</text>
+   </g>
+   <g id="text_39">
+    <text style="fill: #6b7280; font: italic 8px 'Helvetica'; text-anchor: start" x="185.44632" y="380.240105" transform="rotate(-0, 185.44632, 380.240105)">rework + recall</text>
+   </g>
+   <g id="text_40">
+    <text style="fill: #6b7280; font: 9px 'Helvetica'; text-anchor: end" x="1095.4116" y="389.469825" transform="rotate(-0, 1095.4116, 389.469825)">source: examples/ic_car_assembly_example.py</text>
+   </g>
+  </g>
+ </g>
+</svg>

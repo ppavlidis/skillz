@@ -204,3 +204,65 @@ def autosize_columns(
         w = estimate_label_width(lab, fontsize=fontsize, padding=padding)
         out.append(max(min_w, min(max_w, w)))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Shape-edge intersection — arrows should land at edges, not centres
+# ---------------------------------------------------------------------------
+
+import math as _math
+
+
+def pill_edge(cx: float, cy: float, w: float, h: float,
+              sx: float, sy: float, *, margin: float = 0.0
+              ) -> tuple[float, float]:
+    """Where does a ray from ``(sx, sy)`` toward ``(cx, cy)`` cross the
+    perimeter of a pill / ellipse at ``(cx, cy)`` with width ``w`` and
+    height ``h``?
+
+    Pills with full rounding are well-approximated as ellipses for
+    edge-intersection — close enough that the visual result is
+    indistinguishable from a true rounded-rectangle calculation, and
+    the math stays simple.
+
+    ``margin`` shifts the returned point *outward* along the ray by
+    that many axis units. Use a small positive margin (~0.5) when you
+    want the arrow's tip to land just outside the chip's border
+    rather than touching it.
+
+    Use this to terminate arrows at chip edges instead of chip
+    centres — a common mistake that puts the arrowhead on top of the
+    chip's text.
+    """
+    dx, dy = cx - sx, cy - sy
+    d = _math.hypot(dx, dy)
+    if d == 0:
+        return (cx, cy)
+    udx, udy = dx / d, dy / d
+    a, b = w / 2.0, h / 2.0
+    t = 1.0 / _math.sqrt((udx / a) ** 2 + (udy / b) ** 2)
+    return (cx - (t + margin) * udx, cy - (t + margin) * udy)
+
+
+def rect_edge(cx: float, cy: float, w: float, h: float,
+              sx: float, sy: float, *, margin: float = 0.0
+              ) -> tuple[float, float]:
+    """Where does a ray from ``(sx, sy)`` toward ``(cx, cy)`` cross
+    the perimeter of an axis-aligned rectangle at ``(cx, cy)`` with
+    width ``w`` and height ``h``?
+
+    Same convention as ``pill_edge`` — returns the boundary point
+    (with optional ``margin`` axis units outward) so an arrow can
+    terminate at the rectangle's edge instead of its centre.
+    """
+    dx, dy = cx - sx, cy - sy
+    d = _math.hypot(dx, dy)
+    if d == 0:
+        return (cx, cy)
+    hw, hh = w / 2.0, h / 2.0
+    if abs(dx) * hh >= abs(dy) * hw:
+        t = hw / abs(dx)
+    else:
+        t = hh / abs(dy)
+    udx, udy = dx / d, dy / d
+    return (cx - t * dx - margin * udx, cy - t * dy - margin * udy)
