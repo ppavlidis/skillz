@@ -25,6 +25,8 @@ from pavlab_arch.layout import figure, FIGSIZES, grid_columns, autosize_columns 
 from pavlab_arch.primitives import (  # noqa: E402
     fit_text, stage_box, dual_stage_box, stack_box, perf_gauge,
     ensemble_proposer, arrow, box,
+    gantt_bar, gantt_variance, gantt_bar_two_tier,
+    gantt_bold_changed_labels, GanttTask,
 )
 from pavlab_arch.style import apply_rcparams  # noqa: E402
 
@@ -169,4 +171,121 @@ def test_dual_stage_box_no_subtitle_one_label():
     dual_stage_box(ax, 10, 40, 18, 12, "Hybrid", P.ACCENT, P.ACCENT_3)
     labels = [t.get_text() for t in ax.texts]
     assert "Hybrid" in labels
+    plt.close(fig)
+
+
+# ---- Gantt: variance + two-tier diff -------------------------------------
+
+@pytest.fixture
+def _gantt_ax():
+    apply_rcparams()
+    fig, ax = plt.subplots(figsize=(6, 2))
+    ax.set_xlim(0, 10)
+    ax.set_ylim(-0.5, 0.5)
+    yield ax
+    plt.close(fig)
+
+
+def test_gantt_variance_not_started_returns_not_started(_gantt_ax):
+    n_before = len(_gantt_ax.patches)
+    out = gantt_variance(_gantt_ax, 0, plan_start=4, plan_end=6,
+                         done_end=0, today=2)
+    assert out == "not_started"
+    assert len(_gantt_ax.patches) == n_before  # nothing drawn
+
+
+def test_gantt_variance_complete_returns_complete(_gantt_ax):
+    n_before = len(_gantt_ax.patches)
+    out = gantt_variance(_gantt_ax, 0, plan_start=1, plan_end=3,
+                         done_end=3, today=5)
+    assert out == "complete"
+    assert len(_gantt_ax.patches) == n_before
+
+
+def test_gantt_variance_behind_draws_overlay(_gantt_ax):
+    n_before = len(_gantt_ax.patches)
+    out = gantt_variance(_gantt_ax, 0, plan_start=1, plan_end=5,
+                         done_end=2, today=4)
+    assert out == "behind"
+    assert len(_gantt_ax.patches) == n_before + 1
+
+
+def test_gantt_variance_overdue_returns_overdue(_gantt_ax):
+    out = gantt_variance(_gantt_ax, 0, plan_start=1, plan_end=4,
+                         done_end=2, today=6)
+    assert out == "overdue"
+
+
+def test_gantt_variance_ahead_no_overlay(_gantt_ax):
+    n_before = len(_gantt_ax.patches)
+    out = gantt_variance(_gantt_ax, 0, plan_start=1, plan_end=6,
+                         done_end=5, today=3)
+    assert out == "ahead"
+    assert len(_gantt_ax.patches) == n_before
+
+
+def test_gantt_variance_on_track_no_overlay(_gantt_ax):
+    n_before = len(_gantt_ax.patches)
+    out = gantt_variance(_gantt_ax, 0, plan_start=1, plan_end=6,
+                         done_end=3, today=3)
+    assert out == "on_track"
+    assert len(_gantt_ax.patches) == n_before
+
+
+def test_gantt_bar_two_tier_draws_two_sets(_gantt_ax):
+    n_before = len(_gantt_ax.patches)
+    changed = gantt_bar_two_tier(
+        _gantt_ax, 0,
+        plan_start=1, plan_end=5,
+        done_end_then=2, status_then="inflight",
+        done_end_now=5, status_now="done",
+    )
+    # Each gantt_bar draws planned bg + status overlay (if any) + done
+    # overlay (if any). Both tiers together must add at least 4 bars
+    # (2 planned bgs + 1 status overlay (inflight T1) + 2 done overlays).
+    assert len(_gantt_ax.patches) >= n_before + 4
+    assert changed is True
+
+
+def test_gantt_bar_two_tier_unchanged_returns_false(_gantt_ax):
+    changed = gantt_bar_two_tier(
+        _gantt_ax, 0,
+        plan_start=1, plan_end=5,
+        done_end_then=3, status_then="inflight",
+        done_end_now=3, status_now="inflight",
+    )
+    assert changed is False
+
+
+def test_gantt_bold_changed_labels_bolds_only_changed_rows():
+    apply_rcparams()
+    fig, ax = plt.subplots()
+    ax.set_yticks([0, 1, 2])
+    ax.set_yticklabels(["row0", "row1", "row2"])
+    # bottom-to-top status order: row0=unchanged, row1=promoted, row2=regressed
+    gantt_bold_changed_labels(
+        ax,
+        statuses_then=["inflight", "planned",  "done"],
+        statuses_now =["inflight", "inflight", "blocked"],
+        color_regressions=True,
+    )
+    labels = ax.get_yticklabels()
+    assert labels[0].get_fontweight() != "bold"
+    assert labels[1].get_fontweight() == "bold"
+    assert labels[2].get_fontweight() == "bold"
+    # row2 regressed (done -> blocked) -> should be red
+    assert labels[2].get_color() == P.ACCENT_4
+    # row1 promoted (planned -> inflight) -> should keep default color
+    assert labels[1].get_color() != P.ACCENT_4
+    plt.close(fig)
+
+
+def test_gantt_bar_alpha_scale_paler_overlay():
+    """alpha_scale < 1.0 should produce paler overlays. Smoke check
+    that the parameter is accepted and does not raise."""
+    apply_rcparams()
+    fig, ax = plt.subplots()
+    ax.set_xlim(0, 10)
+    ax.set_ylim(-0.5, 0.5)
+    gantt_bar(ax, 0, 1, 5, 3, status="inflight", alpha_scale=0.45)
     plt.close(fig)

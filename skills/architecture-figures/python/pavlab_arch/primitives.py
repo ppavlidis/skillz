@@ -952,6 +952,7 @@ def gantt_bar(
     height: float = 0.62,
     done_color: str = _p.ACCENT_2,
     planned_color: str = _p.GRID,
+    alpha_scale: float = 1.0,
 ) -> None:
     """One Gantt row, layered: planned-bar background, status overlay
     on the remaining portion, done overlay on the completed portion.
@@ -967,6 +968,11 @@ def gantt_bar(
 
     ``y`` is the row centre. ``height`` is the bar height in y-units.
     The same row can be a single ``GanttTask``'s render.
+
+    ``alpha_scale`` multiplies the alpha of every layer (planned
+    background, status overlay, done overlay). Use values < 1.0 to
+    render a "ghost" / paler version of the bar — this is what
+    ``gantt_bar_two_tier`` uses for the T1 tier.
     """
     plan_w = plan_end - plan_start
     done_w = max(0.0, done_end - plan_start)
@@ -977,6 +983,7 @@ def gantt_bar(
     ax.barh(
         y, plan_w, left=plan_start, height=height,
         color=planned_color, edgecolor="none", zorder=2,
+        alpha=alpha_scale,
     )
 
     # remaining-portion overlay
@@ -986,7 +993,8 @@ def gantt_bar(
             y, remaining_w, left=remaining_start, height=height,
             color=info["fc"], edgecolor=info["ec"] or "none",
             linewidth=1.4 if info["ec"] else 0,
-            hatch=info["hatch"], alpha=info["alpha"], zorder=2.5,
+            hatch=info["hatch"], alpha=info["alpha"] * alpha_scale,
+            zorder=2.5,
         )
 
     # done overlay
@@ -994,7 +1002,199 @@ def gantt_bar(
         ax.barh(
             y, done_w, left=plan_start, height=height,
             color=done_color, edgecolor="none", zorder=3,
+            alpha=alpha_scale,
         )
+
+
+# ---------------------------------------------------------------------------
+# Gantt progress overlays — "plan vs reality"
+# ---------------------------------------------------------------------------
+#
+# A Gantt is a plan, not reality. Two orthogonal ways to layer reality
+# onto a plan-shaped chart:
+#
+#   A) Schedule variance vs "today": per-row overlay showing whether the
+#      row is ahead/behind/overdue relative to a linear-progress
+#      expectation at the current date. Use `gantt_variance`.
+#   B) Snapshot diff between two dates (T1 -> T2): per-row two-tier bar
+#      with the earlier state on the top half (paler) and the current
+#      state on the bottom (full saturation). Use `gantt_bar_two_tier`
+#      + `gantt_bold_changed_labels` for the y-axis-label emphasis.
+#
+# A and C compose: use `gantt_bar_two_tier` for the snapshot diff AND
+# `gantt_variance(... today=T2)` for the current schedule variance.
+
+
+# Rank used by the bold-changed-labels helper to detect promotions vs
+# regressions. Higher rank = more progressed. Callers can pass their
+# own dict to override.
+_GANTT_STATUS_RANK = {
+    "deferred": 0,
+    "blocked":  0,
+    "planned":  1,
+    "inflight": 2,
+    "done":     3,
+}
+
+
+def gantt_variance(
+    ax,
+    y: float,
+    plan_start: float,
+    plan_end: float,
+    done_end: float,
+    today: float,
+    *,
+    height: float = 0.62,
+    behind_color: str = _p.ACCENT_4,
+    behind_alpha: float = 0.32,
+) -> str:
+    """Decorate a Gantt row with a schedule-variance overlay relative
+    to ``today``, and return the row's variance classification.
+
+    Assumes linear progress: at ``today``, a row in its planned window
+    is "on track" iff ``done_end == today``. ``done_end < today`` is
+    behind; ``done_end > today`` is ahead.
+
+    Returns one of:
+      - ``"not_started"`` — ``today < plan_start`` (no overlay drawn)
+      - ``"complete"`` — ``done_end >= plan_end`` (no overlay drawn)
+      - ``"overdue"`` — ``today >= plan_end`` and the row isn't done;
+        the gap ``[done_end, plan_end]`` is tinted red
+      - ``"behind"`` — ``today in [plan_start, plan_end]`` and
+        ``done_end < today``; gap ``[done_end, today]`` tinted red
+      - ``"ahead"`` — ``done_end > today``; no overlay drawn (the
+        emerald done bar already extends past the global today line,
+        which self-documents the "going well" case)
+      - ``"on_track"`` — ``done_end == today``; no overlay drawn
+
+    Why no per-row marker for ``today``: the global ``today_line``
+    already draws one vertical reference for the whole chart, so per-
+    row markers would duplicate that signal. The overlay only fires
+    for the cases that need attention (behind / overdue).
+
+    Callers typically use the returned classification to decide whether
+    to bold the y-tick label, emit a note, or compute summary counts.
+    """
+    if today < plan_start:
+        return "not_started"
+    # Clamp done_end into the plan window so the "not started" sentinel
+    # (done_end == 0 or anything < plan_start) doesn't make the red gap
+    # extend left of the plan bar.
+    effective_done = max(plan_start, min(done_end, plan_end))
+    if effective_done >= plan_end:
+        return "complete"
+    if today >= plan_end:
+        gap_start, gap_end = effective_done, plan_end
+        kind = "overdue"
+    elif effective_done < today:
+        gap_start, gap_end = effective_done, today
+        kind = "behind"
+    elif effective_done > today:
+        return "ahead"
+    else:
+        return "on_track"
+
+    gap_w = gap_end - gap_start
+    if gap_w > 0:
+        ax.barh(
+            y, gap_w, left=gap_start, height=height,
+            color=behind_color, edgecolor="none",
+            alpha=behind_alpha, zorder=3.5,
+        )
+    return kind
+
+
+def gantt_bar_two_tier(
+    ax,
+    y: float,
+    plan_start: float,
+    plan_end: float,
+    done_end_then: float,
+    status_then: str,
+    done_end_now: float,
+    status_now: str,
+    *,
+    height: float = 0.62,
+    pale_alpha: float = 0.45,
+    seam: float = 0.04,
+) -> bool:
+    """Two stacked half-height bars on row ``y``:
+
+      - TOP half: the row's state at an earlier snapshot T1, rendered
+        pale (alpha-scaled by ``pale_alpha``).
+      - BOTTOM half: the row's state now (T2), full saturation.
+
+    A small ``seam`` between the two halves lets the white facecolor
+    show through, so the tiers read as stacked rather than blended.
+
+    If the row's status and ``done_end`` are unchanged between T1 and
+    T2, the two tiers render as the same shape at two saturations —
+    visually quiet. If anything changed, the shapes differ and the
+    row pops on a scan.
+
+    Returns ``True`` if anything changed between T1 and T2 (status or
+    ``done_end``). Use that to drive the bold-y-tick-label cue via
+    ``gantt_bold_changed_labels`` so unchanged rows stay visually
+    quiet AND labeled-quiet on the y axis.
+    """
+    h = height / 2.0
+    offset = (h + seam) / 2.0
+    gantt_bar(
+        ax, y + offset,
+        plan_start, plan_end, done_end_then, status_then,
+        height=h - seam, alpha_scale=pale_alpha,
+    )
+    gantt_bar(
+        ax, y - offset,
+        plan_start, plan_end, done_end_now, status_now,
+        height=h - seam, alpha_scale=1.0,
+    )
+    return (status_then != status_now) or (done_end_then != done_end_now)
+
+
+def gantt_bold_changed_labels(
+    ax,
+    statuses_then,
+    statuses_now,
+    *,
+    rank=None,
+    color_regressions: bool = False,
+    regression_color: str = _p.ACCENT_4,
+) -> None:
+    """Bold y-tick labels for rows whose status changed between T1 and
+    T2. Optionally tint regressions (status rank decreased) red.
+
+    ``statuses_then`` and ``statuses_now`` are parallel lists indexed
+    in the SAME bottom-to-top order as ``ax.get_yticklabels()``. If
+    you reversed your tasks list for top-down display (the standard
+    Gantt convention — first task at TOP), you must reverse the two
+    statuses lists to match.
+
+    ``rank`` is an optional mapping from status string to integer rank
+    (higher = more progressed). Defaults to the skill's standard
+    ranking: ``deferred = blocked = 0 < planned = 1 < inflight = 2 <
+    done = 3``. A change from a lower rank to a higher rank is a
+    *promotion*; the reverse is a *regression*. Pass your own dict to
+    override (e.g. if your status grammar differs).
+
+    Without this helper, every row in a two-tier chart competes for
+    the reader's attention equally — the encoding doesn't self-explain
+    that unchanged rows are unchanged. The bold-label cue makes the
+    "what moved" question answerable from the y axis alone.
+    """
+    if rank is None:
+        rank = _GANTT_STATUS_RANK
+    labels = list(ax.get_yticklabels())
+    n = min(len(labels), len(statuses_then), len(statuses_now))
+    for i in range(n):
+        st_then = statuses_then[i]
+        st_now = statuses_now[i]
+        if st_then == st_now:
+            continue
+        labels[i].set_fontweight("bold")
+        if color_regressions and rank.get(st_now, 0) < rank.get(st_then, 0):
+            labels[i].set_color(regression_color)
 
 
 def today_line(

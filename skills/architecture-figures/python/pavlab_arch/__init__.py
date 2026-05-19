@@ -15,6 +15,7 @@ Public surface:
         ensemble_proposer, perf_gauge,
         lane_arrow, legend_block,
         gantt_bar, today_line, GanttTask,
+        gantt_variance, gantt_bar_two_tier, gantt_bold_changed_labels,
         fit_text,
     )
     from pavlab_arch.layout import (

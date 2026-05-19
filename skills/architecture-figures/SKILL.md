@@ -26,7 +26,13 @@ description: >
   "edges-with-labels" pattern: state-machine transitions, enzymes,
   protocols, ER cardinalities), `gantt_bar` + `today_line` +
   `GanttTask` (flat / modern Gantt-chart primitives sharing the
-  skill's palette and aesthetic), `arrow` (thick arrows; `linestyle`
+  skill's palette and aesthetic) with progress overlays
+  `gantt_variance` (per-row red overlay for behind/overdue rows
+  relative to today, since a Gantt is a plan and reality drifts) and
+  `gantt_bar_two_tier` + `gantt_bold_changed_labels` (T1 -> T2
+  snapshot diff: pale top tier = earlier state, full bottom tier =
+  state now, bold y-tick labels for rows whose status changed),
+  `arrow` (thick arrows; `linestyle`
   and `style` knobs cover dashed, open-headed, two-way `<|-|>`, and
   headless variants), `box` (with `linestyle` for dashed borders and
   `text_style` for italic labels), and `fit_text`. Plus
@@ -772,6 +778,99 @@ schedule state I've found in practice:
 
 See `examples/gantt_chart_example.py` for a complete render.
 
+### Progress overlays — "plan vs. reality"
+
+A Gantt is a plan, not reality. The base `gantt_bar` encodes plan-
+vs-done within a single snapshot (gray planned span + emerald done
+overlay + status-coloured remaining portion), but says nothing about
+**whether the row is on schedule today** or **what moved between two
+review dates**. Two orthogonal helpers add those:
+
+#### Schedule variance vs. today — `gantt_variance`
+
+For each row, compares `done_end` against today (assuming linear
+progress, so the expected position at `today` is just `today` itself,
+clamped to the plan window) and tints the gap red if the row is
+behind plan:
+
+```python
+from pavlab_arch.primitives import gantt_bar, gantt_variance, today_line
+
+for i, t in enumerate(reversed(tasks)):
+    gantt_bar(ax, i, t.plan_start, t.plan_end, t.done_end, t.status)
+    cls = gantt_variance(ax, i, t.plan_start, t.plan_end,
+                         t.done_end, today=TODAY_X)
+    # cls in {"not_started", "complete", "overdue", "behind",
+    #         "ahead", "on_track"} — use for caller-side annotation
+today_line(ax, TODAY_X, label="today")
+```
+
+The function only draws an overlay for the cases that need
+attention: `"behind"` (gap `[done_end, today]`) and `"overdue"`
+(gap `[done_end, plan_end]` after the planned window has elapsed).
+`"ahead"` and `"on_track"` draw nothing — the emerald done bar
+already extends past the global today line, which self-documents
+the "going well" case. Per-row markers would duplicate the global
+`today_line`, so the helper omits them on purpose.
+
+#### Snapshot diff (T1 -> T2) — `gantt_bar_two_tier` + `gantt_bold_changed_labels`
+
+For "what moved between two review dates", replace `gantt_bar` with
+the two-tier version: top half = state at T1 (pale, 45% alpha),
+bottom half = state now (full saturation), with a tiny white seam
+between them so they read as stacked rather than blended.
+
+```python
+from pavlab_arch.primitives import (
+    gantt_bar_two_tier, gantt_bold_changed_labels,
+)
+
+statuses_then = []
+statuses_now = []
+for i, row in enumerate(reversed(rows)):
+    gantt_bar_two_tier(
+        ax, i, row.plan_start, row.plan_end,
+        done_end_then=row.de_t1, status_then=row.st_t1,
+        done_end_now=row.de_t2,  status_now=row.st_t2,
+    )
+    statuses_then.append(row.st_t1)
+    statuses_now.append(row.st_t2)
+
+# bottom-to-top order — match ax.get_yticklabels()
+gantt_bold_changed_labels(ax, statuses_then, statuses_now,
+                          color_regressions=True)
+```
+
+A row whose status didn't change reads as the same shape at two
+saturations (visually quiet). A row that moved reads as two
+different shapes stacked. The bold-label pass is **necessary for
+the encoding to self-explain**: without it, every row competes for
+the reader's attention equally and unchanged rows feel like noise.
+With it, the "what moved between T1 and T2" question is answerable
+from the y axis alone.
+
+`color_regressions=True` additionally tints the y-label red on rows
+that *regressed* (status rank decreased: `done -> blocked`,
+`inflight -> planned`, etc.). The default status ranking is
+`deferred = blocked = 0 < planned = 1 < inflight = 2 < done = 3`;
+pass `rank=...` to override.
+
+#### Composing A + C
+
+The two are orthogonal — the same chart can carry both. The
+combined panel pattern is "two stacked Gantts": top panel shows the
+current snapshot with variance overlay (mode A), bottom panel shows
+T1 -> T2 diff (mode C). See `examples/gantt_progress_overlay_example.py`
+for the canonical recipe.
+
+#### Convention: stamp the snapshot date in the filename
+
+Always include the snapshot date in the filename when emitting a
+Gantt: `roadmap_2026-05-18.svg`. Same for the regenerator script
+and any captions entry. Otherwise diffing v1 vs v2 of the same chart
+across time means digging through git history for the right
+regenerator.
+
 ## Software stack diagrams
 
 For onboarding docs, architecture decision records, system overviews
@@ -937,6 +1036,20 @@ primitives plus the conventions for category bands, today reference
 line, x-axis tick labels, and bottom-row legend. Adapt by swapping
 the `TASKS` list and adjusting `X_TICKS` / `X_LABELS` for your
 time encoding (sessions, weeks, sprints, calendar dates).
+
+`examples/gantt_progress_overlay_example.py` (10×variable)
+— two stacked Gantt panels demonstrating the **plan-vs-reality**
+overlays. Top panel uses `gantt_variance` to tint behind-schedule
+and overdue rows red relative to today; bottom panel uses
+`gantt_bar_two_tier` for a T1 -> T2 snapshot diff (pale upper tier
+= state at the earlier checkpoint, full lower tier = state now),
+plus `gantt_bold_changed_labels` to bold y-tick labels of rows
+whose status changed and red-tint labels of rows that regressed
+(e.g. `planned -> deferred`). Shows how the two modes compose on a
+single figure — schedule variance answers "are we on track today",
+snapshot diff answers "what moved since last review". Use as the
+reference whenever the chart needs to communicate progress over
+time, not just a static plan.
 
 `examples/krebs_cycle_example.py` (9.5×9.5)
 — real-world non-LLM example demonstrating the extended box / arrow
