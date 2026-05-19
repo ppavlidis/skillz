@@ -151,6 +151,17 @@ def estimate_label_width(
     return n * fontsize * char_width_per_pt / 6.7 + padding
 
 
+def svg_safe_figure(fig) -> None:
+    """Iterate every axes in `fig` and disable clipping on every
+    artist within. Convenience wrapper for figures with subplots —
+    call once just before `fig.savefig(...)`.
+
+    See `svg_safe` (single-axes version) for the why.
+    """
+    for ax in fig.axes:
+        svg_safe(ax)
+
+
 def svg_safe(ax) -> None:
     """Disable clipping on every artist in `ax` so the saved SVG has
     no `clipPath` elements.
