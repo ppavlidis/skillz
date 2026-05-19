@@ -191,4 +191,36 @@ stopifnot(grepl("Group", p_labs$labels$x))
 stopifnot(grepl("Value", p_labs$labels$y))
 cat(" ok\n")
 
+# ---- 10. kind="swarm" -------------------------------------------------------
+
+cat("19. kind='strip' (default) jitters the point layer...")
+p_strip <- pavlab_stripchart(groups, values)  # default kind
+# geom_jitter reports class "GeomPoint" — the jitter is on the layer's
+# position, not the geom. Look for at least one PositionJitter layer.
+positions <- vapply(p_strip$layers, function(l) class(l$position)[1], character(1))
+stopifnot("PositionJitter" %in% positions)
+cat(" ok\n")
+
+if (requireNamespace("ggbeeswarm", quietly = TRUE)) {
+  cat("20. kind='swarm' uses GeomBeeswarm when ggbeeswarm is available...")
+  p_sw <- pavlab_stripchart(groups, values, kind = "swarm")
+  geoms_sw <- vapply(p_sw$layers, function(l) class(l$geom)[1], character(1))
+  stopifnot("GeomBeeswarm" %in% geoms_sw)
+  cat(" ok\n")
+} else {
+  cat("20. kind='swarm' raises clear error when ggbeeswarm missing...")
+  err <- tryCatch({
+    pavlab_stripchart(groups, values, kind = "swarm"); NULL
+  }, error = function(e) conditionMessage(e))
+  stopifnot(!is.null(err), grepl("ggbeeswarm", err))
+  cat(" ok\n")
+}
+
+cat("21. kind='violin' rejected by match.arg...")
+err2 <- tryCatch({
+  pavlab_stripchart(groups, values, kind = "violin"); NULL
+}, error = function(e) conditionMessage(e))
+stopifnot(!is.null(err2), grepl("should be one of", err2))
+cat(" ok\n")
+
 cat("\nALL TESTS PASSED\n")

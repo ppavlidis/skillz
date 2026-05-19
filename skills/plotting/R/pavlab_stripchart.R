@@ -37,7 +37,13 @@
 #'   character / factor vector of length n (categorical — lab accent palette +
 #'   legend), or a numeric vector of length n (viridis colorbar).
 #' @param color_label Colorbar title for numeric `color`. Default NULL (empty).
+#' @param kind "strip" (default) or "swarm". "strip" applies uniform
+#'   horizontal jitter via `position_jitter`. "swarm" packs points
+#'   non-overlappingly via `ggbeeswarm::geom_beeswarm` (so an explicit
+#'   `ggbeeswarm` install is required for swarm; the function stops
+#'   with a clear message otherwise). `jitter` is ignored under swarm.
 #' @param jitter Horizontal jitter width passed to `position_jitter`. Default 0.2.
+#'   Ignored when `kind="swarm"`.
 #' @param show_mean If TRUE, draw a dashed horizontal reference line at the
 #'   grand mean of all (post-transform) y values. Line renders behind points.
 #'   Default FALSE.
@@ -69,6 +75,7 @@ pavlab_stripchart <- function(
   x, y,
   color       = NULL,
   color_label = NULL,
+  kind        = "strip",
   jitter      = 0.2,
   show_mean   = FALSE,
   show_median = FALSE,
@@ -88,6 +95,12 @@ pavlab_stripchart <- function(
   if (!requireNamespace("ggplot2", quietly = TRUE))
     stop("pavlab_stripchart: ggplot2 is required. Install with install.packages('ggplot2').",
          call. = FALSE)
+
+  kind <- match.arg(tolower(as.character(kind)), c("strip", "swarm"))
+  if (kind == "swarm" && !requireNamespace("ggbeeswarm", quietly = TRUE)) {
+    stop("pavlab_stripchart: kind='swarm' requires the ggbeeswarm package. ",
+         "Install with install.packages('ggbeeswarm').", call. = FALSE)
+  }
 
   x <- as.character(x)
   y <- as.numeric(y)
@@ -190,41 +203,41 @@ pavlab_stripchart <- function(
   }
 
   # ---- Points --------------------------------------------------------------
-
-  jitter_pos <- ggplot2::position_jitter(width = jitter, height = 0)
+  # Point-layer factory: returns a ggplot2 layer parameterised by colour
+  # but with the kind-specific layout (jittered strip vs. packed swarm).
+  point_layer <- function(...) {
+    if (kind == "swarm") {
+      ggbeeswarm::geom_beeswarm(
+        ...,
+        cex     = 1.0,
+        method  = "swarm",
+        shape   = 16,
+        stroke  = 0,
+        size    = ps
+      )
+    } else {
+      ggplot2::geom_jitter(
+        ...,
+        position = ggplot2::position_jitter(width = jitter, height = 0),
+        shape    = 16,
+        stroke   = 0,
+        size     = ps
+      )
+    }
+  }
 
   if (cmode == "uniform_black") {
-    p <- p + ggplot2::geom_jitter(
-      color    = "#000000",
-      alpha    = alpha_val,
-      size     = ps,
-      shape    = 16,
-      stroke   = 0,
-      position = jitter_pos
-    )
+    p <- p + point_layer(color = "#000000", alpha = alpha_val)
 
   } else if (cmode == "uniform_string") {
-    p <- p + ggplot2::geom_jitter(
-      color    = as.character(color),
-      alpha    = alpha_val,
-      size     = ps,
-      shape    = 16,
-      stroke   = 0,
-      position = jitter_pos
-    )
+    p <- p + point_layer(color = as.character(color), alpha = alpha_val)
 
   } else if (cmode == "categorical") {
     cats     <- unique(as.character(color))
     cat_idx  <- ((seq_along(cats) - 1L) %% length(.ACCENT_COLORS)) + 1L
     cat_cols <- setNames(.ACCENT_COLORS[cat_idx], cats)
     p <- p +
-      ggplot2::geom_jitter(
-        alpha    = alpha_val,
-        size     = ps,
-        shape    = 16,
-        stroke   = 0,
-        position = jitter_pos
-      ) +
+      point_layer(alpha = alpha_val) +
       ggplot2::scale_color_manual(values = cat_cols, name = NULL) +
       ggplot2::guides(color = ggplot2::guide_legend(
         override.aes = list(size = 3, alpha = 1)
@@ -234,13 +247,7 @@ pavlab_stripchart <- function(
     # numeric → viridis colorbar
     clabel <- if (!is.null(color_label)) color_label else ""
     p <- p +
-      ggplot2::geom_jitter(
-        alpha    = alpha_val,
-        size     = ps,
-        shape    = 16,
-        stroke   = 0,
-        position = jitter_pos
-      ) +
+      point_layer(alpha = alpha_val) +
       ggplot2::scale_color_viridis_c(name = clabel)
   }
 

@@ -36,6 +36,7 @@ from pavlab_density import pavlab_density          # noqa: E402
 from pavlab_heatmap import pavlab_heatmap          # noqa: E402
 from pavlab_scatter import pavlab_scatter          # noqa: E402
 from pavlab_stripchart import pavlab_stripchart    # noqa: E402
+from pavlab_boxplot import pavlab_boxplot          # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "gallery"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -401,6 +402,109 @@ PROMPT_STRIP_LOG = (
 )
 
 
+def fig_strip_swarm(out):
+    """Swarm-packed stripchart — non-overlapping point layout."""
+    r = np.random.default_rng(13)
+    groups = np.repeat(["Neuron", "Astrocyte", "Microglia"], 40)
+    vals   = np.concatenate([r.lognormal(2.5, 0.7, 40),
+                             r.lognormal(1.9, 0.8, 40),
+                             r.lognormal(2.2, 0.9, 40)])
+    _q(pavlab_stripchart, groups, vals,
+       kind="swarm",
+       xlabel="Cell type", ylabel="TPM",
+       log_y="log2", label_size="large",
+       filename=str(out), figsize=SZ_STRIP)
+
+PY_STRIP_SWARM = """\
+pavlab_stripchart(cell_type, tpm, kind="swarm",
+                  xlabel="Cell type", ylabel="TPM",
+                  log_y="log2")
+# beeswarm packs points non-overlappingly — distribution shape is legible
+"""
+
+R_STRIP_SWARM = """\
+pavlab_stripchart(cell_type, tpm, kind="swarm",
+                  xlabel="Cell type", ylabel="TPM",
+                  log_y="log2")
+# requires the ggbeeswarm package
+"""
+
+PROMPT_STRIP_SWARM = (
+    "Swarm chart of TPM per cell type — beeswarm packing reveals "
+    "distribution shape without overlap."
+)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  BOXPLOT  (used sparingly — defaults bake in raw points + error bar)
+# ────────────────────────────────────────────────────────────────────────────
+
+def _box_data(seed=99):
+    r = np.random.default_rng(seed)
+    groups = np.repeat(["WT", "KO", "DKO"], 25)
+    vals = np.concatenate([
+        r.normal(2.0, 0.55, 25),
+        r.normal(2.7, 0.75, 25),
+        r.normal(3.3, 0.45, 25),
+    ])
+    return groups, vals
+
+
+def fig_box_default(out):
+    """Default boxplot: pale box + swarmed raw points. No error bar."""
+    groups, vals = _box_data()
+    _q(pavlab_boxplot, groups, vals,
+       xlabel="Genotype", ylabel="Expression",
+       order=["WT", "KO", "DKO"],
+       label_size="large", filename=str(out), figsize=SZ_STRIP)
+
+PY_BOX_DEFAULT = """\
+pavlab_boxplot(genotype, expression,
+               xlabel="Genotype", ylabel="Expression",
+               order=["WT", "KO", "DKO"])
+# defaults: swarmed points underneath + box; no error bar (redundant
+# when points are already visible)
+"""
+
+R_BOX_DEFAULT = """\
+pavlab_boxplot(genotype, expression,
+               xlabel="Genotype", ylabel="Expression",
+               order=c("WT","KO","DKO"))
+"""
+
+PROMPT_BOX_DEFAULT = (
+    "Boxplot of expression by genotype — defaults: raw data as a swarm "
+    "underneath; no error bar (the points already encode the distribution)."
+)
+
+
+def fig_box_compact(out):
+    """Compact box-only chart: no points, no overlaid error bar — the
+    whiskers + IQR + median convey the spread on their own."""
+    groups, vals = _box_data()
+    _q(pavlab_boxplot, groups, vals,
+       show_points=False,
+       xlabel="Genotype", ylabel="Expression",
+       order=["WT", "KO", "DKO"],
+       label_size="large", filename=str(out), figsize=SZ_STRIP)
+
+PY_BOX_COMPACT = """\
+pavlab_boxplot(genotype, expression, show_points=False,
+               order=["WT","KO","DKO"])
+# compact box-only chart — whiskers + IQR carry the spread, no overlay
+"""
+
+R_BOX_COMPACT = """\
+pavlab_boxplot(genotype, expression, show_points = FALSE,
+               order = c("WT","KO","DKO"))
+"""
+
+PROMPT_BOX_COMPACT = (
+    "Compact box-only chart (no raw points) — the box's whiskers + "
+    "IQR + median convey the spread; no separate error bar."
+)
+
+
 # ────────────────────────────────────────────────────────────────────────────
 #  DENSITY / HISTOGRAM / VIOLIN
 # ────────────────────────────────────────────────────────────────────────────
@@ -414,19 +518,27 @@ def _dens_data(n_per=200):
 
 
 def fig_density_single(out):
+    # Non-negative, right-skewed (lognormal) data — the natural case for
+    # log-scale x. On a linear axis the visible density is a useless
+    # spike at zero; log_x exposes the actual shape.
     _, vals = _dens_data(n_per=300)
-    _q(pavlab_density, vals, xlabel="Expression", label_size="large", filename=str(out), figsize=SZ)
+    _q(pavlab_density, vals, xlabel="Expression", log_x="log2",
+       label_size="large", filename=str(out), figsize=SZ)
 
 PY_DENS_SINGLE = """\
-pavlab_density(expression_values, xlabel="Expression")
-# single group → accent-blue filled KDE
+pavlab_density(expression_values, xlabel="Expression", log_x="log2")
+# non-negative, right-skewed data → propose log scale by default;
+# pavlab_density also warns at runtime when data spans > 100× linearly
 """
 
 R_DENS_SINGLE = """\
-pavlab_density(expression_values, xlabel="Expression")
+pavlab_density(expression_values, xlabel="Expression", log_x="log2")
 """
 
-PROMPT_DENS_SINGLE = "Single-group KDE density plot."
+PROMPT_DENS_SINGLE = (
+    "Single-group KDE density plot for non-negative, right-skewed "
+    "data — log scale on the x-axis."
+)
 
 
 def fig_density_reflect(out):
@@ -646,6 +758,19 @@ FIGURES = [
          prompt=PROMPT_STRIP_LOG,
          notes="log₂ pre-transforms values before plotting · axis label gains '(log₂)' suffix · origin_zero=False",
          fn=fig_strip_log, wide=False),
+    dict(key="strip_swarm",         title="Strip chart — swarm packing",
+         prompt=PROMPT_STRIP_SWARM,
+         notes="kind='swarm' · non-overlapping beeswarm layout · display-pixel-aware (Python) / ggbeeswarm (R)",
+         fn=fig_strip_swarm, wide=False),
+    # ---- boxplot (sparingly!) ----
+    dict(key="box_default",         title="Boxplot — default (swarm + box)",
+         prompt=PROMPT_BOX_DEFAULT,
+         notes="raw points underneath (swarmed) · NO error bar (redundant when points are visible) · no outlier fliers · no quartile-only mode",
+         fn=fig_box_default, wide=False),
+    dict(key="box_compact",         title="Boxplot — compact (no points)",
+         prompt=PROMPT_BOX_COMPACT,
+         notes="show_points=False · no points, no error overlay · the box's whiskers + IQR are the spread visualisation",
+         fn=fig_box_compact, wide=False),
     # ---- density / histogram / violin ----
     dict(key="density_single",      title="Density — single group",
          prompt=PROMPT_DENS_SINGLE,
@@ -782,7 +907,8 @@ def _card(f, r_exists):
 _SECTION_KEYS = {
     "Heatmap":    [k for k in ["heatmap_expression","heatmap_correlation","heatmap_raw","heatmap_big"]],
     "Scatter":    ["scatter_basic","scatter_log2","scatter_categorical","scatter_numeric","scatter_hexbin"],
-    "Stripchart": ["strip_basic","strip_color","strip_mean_median","strip_log"],
+    "Stripchart": ["strip_basic","strip_color","strip_mean_median","strip_log","strip_swarm"],
+    "Boxplot (used sparingly)": ["box_default","box_compact"],
     "Density / Histogram / Violin": [
         "density_single","density_reflect","density_grouped",
         "density_faceted","histogram_basic","histogram_faceted",

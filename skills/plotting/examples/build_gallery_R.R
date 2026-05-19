@@ -11,6 +11,7 @@ suppressPackageStartupMessages({
   source("R/palettes.R")
   source("R/pavlab_scatter.R")
   source("R/pavlab_stripchart.R")
+  source("R/pavlab_boxplot.R")
   source("R/pavlab_density.R")
   source("R/pavlab_heatmap.R")
 })
@@ -199,11 +200,68 @@ d_l <- .strip_data(n_per = 60)
                      figsize = SZ_STRIP))
 cat("ok\n")
 
+cat("  strip_swarm ... ")
+if (requireNamespace("ggbeeswarm", quietly = TRUE)) {
+  set.seed(13)
+  sw_groups <- rep(c("Neuron", "Astrocyte", "Microglia"), each = 40)
+  sw_vals <- c(rlnorm(40, 2.5, 0.7),
+               rlnorm(40, 1.9, 0.8),
+               rlnorm(40, 2.2, 0.9))
+  .q(pavlab_stripchart(sw_groups, sw_vals,
+                       kind = "swarm",
+                       xlabel = "Cell type", ylabel = "TPM",
+                       log_y = "log2",
+                       label_size = "large",
+                       filename = file.path(OUT, "strip_swarm_r.png"),
+                       figsize = SZ_STRIP))
+  cat("ok\n")
+} else {
+  cat("skipped (ggbeeswarm not installed)\n")
+}
+
+# ── boxplot (sparingly!) ─────────────────────────────────────────────────
+
+.box_data <- function() {
+  set.seed(99)
+  list(groups = rep(c("WT","KO","DKO"), each = 25),
+       vals   = c(rnorm(25, 2.0, 0.55),
+                  rnorm(25, 2.7, 0.75),
+                  rnorm(25, 3.3, 0.45)))
+}
+
+cat("  box_default ... ")
+db <- .box_data()
+# Swarm requires ggbeeswarm; fall back to strip if missing so the
+# default-flavour panel still renders for the gallery.
+points_kind <- if (requireNamespace("ggbeeswarm", quietly = TRUE)) "swarm" else "strip"
+.q(pavlab_boxplot(db$groups, db$vals,
+                  points_kind = points_kind,
+                  xlabel = "Genotype", ylabel = "Expression",
+                  order = c("WT","KO","DKO"),
+                  label_size = "large",
+                  filename = file.path(OUT, "box_default_r.png"),
+                  figsize = SZ_STRIP))
+cat("ok\n")
+
+cat("  box_compact ... ")
+# Compact box-only chart — no points, no overlaid error bar. The box's
+# whiskers + IQR + median convey the spread on their own.
+.q(pavlab_boxplot(db$groups, db$vals,
+                  show_points = FALSE,
+                  xlabel = "Genotype", ylabel = "Expression",
+                  order = c("WT","KO","DKO"),
+                  label_size = "large",
+                  filename = file.path(OUT, "box_compact_r.png"),
+                  figsize = SZ_STRIP))
+cat("ok\n")
+
 # ── density / histogram / violin ─────────────────────────────────────────
 
 cat("  density_single ... ")
 d_d <- .dens_data(300)
-.q(pavlab_density(d_d$vals, xlabel = "Expression",
+# Non-negative right-skewed data → log_x exposes the shape; without it
+# the visible density is a useless spike at zero.
+.q(pavlab_density(d_d$vals, xlabel = "Expression", log_x = "log2",
                   label_size = "large",
                   filename = file.path(OUT, "density_single_r.png"),
                   figsize = SZ))

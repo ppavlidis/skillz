@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PathCollection
 
-from pavlab_stripchart import pavlab_stripchart
+from pavlab_stripchart import pavlab_stripchart, _swarm_x_offsets
 
 
 # ---- fixtures ---------------------------------------------------------------
@@ -252,3 +252,60 @@ def test_ax_kwarg_reuses_figure(simple):
     pavlab_stripchart(*simple, ax=axes[1])
     assert len(fig.axes) == 2
     plt.close("all")
+
+
+# ---- 11. kind="swarm" -------------------------------------------------------
+
+def test_kind_swarm_renders(three_groups):
+    ax = pavlab_stripchart(*three_groups, kind="swarm")
+    sc = [c for c in ax.collections if isinstance(c, PathCollection)][0]
+    assert sc.get_offsets().shape[0] == len(three_groups[0])
+    plt.close("all")
+
+
+def test_kind_swarm_no_overlap_in_y_neighbors():
+    """In a tightly-packed swarm, the y-sorted points should have
+    non-trivial x spread within each group (= the swarm is actually
+    spreading points, not stacking them at jitter=0)."""
+    rng = np.random.default_rng(0)
+    g = ["A"] * 60
+    v = rng.normal(0, 1, 60)
+    ax = pavlab_stripchart(g, v, kind="swarm", figsize=(3, 5))
+    sc = [c for c in ax.collections if isinstance(c, PathCollection)][0]
+    xs = sc.get_offsets()[:, 0]
+    assert np.std(xs) > 0.0  # actual spread, not all at x=0
+    plt.close("all")
+
+
+def test_kind_strip_default_still_works(simple):
+    """Default kind='strip' behaviour unchanged."""
+    ax = pavlab_stripchart(*simple)  # no kind kwarg
+    sc = [c for c in ax.collections if isinstance(c, PathCollection)][0]
+    assert sc.get_offsets().shape[0] == len(simple[0])
+    plt.close("all")
+
+
+def test_kind_rejects_unknown_value(simple):
+    with pytest.raises(ValueError, match="kind must be"):
+        pavlab_stripchart(*simple, kind="violin")
+    plt.close("all")
+
+
+def test_swarm_x_offsets_singleton_zero():
+    """A single point should sit at x=0 (no swarm needed)."""
+    fig, ax = plt.subplots()
+    ax.set_xlim(-0.5, 0.5)
+    ax.set_ylim(0, 1)
+    out = _swarm_x_offsets(np.array([0.5]), ax, marker_size_pts=20)
+    assert out.shape == (1,)
+    assert out[0] == pytest.approx(0.0)
+    plt.close(fig)
+
+
+def test_swarm_x_offsets_empty():
+    fig, ax = plt.subplots()
+    ax.set_xlim(-0.5, 0.5)
+    ax.set_ylim(0, 1)
+    out = _swarm_x_offsets(np.array([]), ax, marker_size_pts=20)
+    assert out.shape == (0,)
+    plt.close(fig)

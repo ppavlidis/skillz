@@ -74,6 +74,86 @@ LogScale = Union[bool, str]   # False | True | "log2" | "log10"
 
 
 # ---------------------------------------------------------------------------
+# Swarm packing — non-overlapping horizontal layout for categorical x
+# ---------------------------------------------------------------------------
+
+def _swarm_x_offsets(y_data, ax, marker_size_pts: float) -> np.ndarray:
+    """Compute non-overlapping x offsets (in DATA coordinates) for a column
+    of points at vertical positions ``y_data``, centered on x=0.
+
+    Greedy placement in display-pixel space: points are placed in order of
+    y; each new point's x is the smallest |offset| (in pixels) that doesn't
+    bring its marker within ``diameter`` of any already-placed marker.
+    Marker diameter is derived from matplotlib's scatter ``s`` (points²)
+    via ``2 * sqrt(s/π)`` points, scaled to pixels via ``fig.dpi``.
+
+    Working in display pixels means the swarm respects what the user
+    actually sees, even when x and y use different data ranges, log
+    scales, or odd figure aspect ratios. The data-space x offsets we
+    return are correct for the axes' current x-limits — call this after
+    ``ax.set_xlim`` is set.
+    """
+    n = len(y_data)
+    if n == 0:
+        return np.zeros(0)
+    if n == 1:
+        return np.zeros(1)
+
+    diameter_pts = 2.0 * np.sqrt(marker_size_pts / np.pi)
+    diameter_px = diameter_pts * ax.figure.dpi / 72.0
+
+    # y in display pixels
+    y_px = ax.transData.transform(
+        np.column_stack([np.zeros(n), np.asarray(y_data, float)])
+    )[:, 1]
+
+    order = np.argsort(y_px)
+    placed: list[tuple[float, float]] = []  # (x_px, y_px) in placement order
+    x_px = np.zeros(n)
+    d = diameter_px
+    d2 = d * d
+
+    for k in order:
+        yk = y_px[k]
+        forbidden: list[tuple[float, float]] = []
+        for xp, yp in placed:
+            dy = yk - yp
+            if abs(dy) >= d:
+                continue
+            dx = float(np.sqrt(d2 - dy * dy))
+            forbidden.append((xp - dx, xp + dx))
+
+        # Candidate x positions: 0, plus the boundary of every forbidden
+        # interval. The smallest |candidate| that's not strictly inside
+        # any forbidden interval wins.
+        forbidden.sort()
+        cands: list[float] = [0.0]
+        for lo, hi in forbidden:
+            cands.append(lo)
+            cands.append(hi)
+        cands.sort(key=lambda v: (abs(v), v))
+        for c in cands:
+            inside = False
+            for lo, hi in forbidden:
+                if lo < c < hi:
+                    inside = True
+                    break
+            if not inside:
+                x_px[k] = c
+                placed.append((c, yk))
+                break
+
+    # Convert pixel offsets back to data-space offsets relative to x=0.
+    # Anchor: the data point (0, y_med) maps to some display x0; offset
+    # by x_px and invert.
+    y_anchor = float(np.median(y_data))
+    x0_disp = ax.transData.transform([(0.0, y_anchor)])[0, 0]
+    targets = np.column_stack([x0_disp + x_px, np.full(n, y_anchor)])
+    inv = ax.transData.inverted().transform(targets)
+    return inv[:, 0]
+
+
+# ---------------------------------------------------------------------------
 # Main function
 # ---------------------------------------------------------------------------
 
@@ -82,6 +162,7 @@ def pavlab_stripchart(
     y,
     color=None,
     color_label: str | None = None,
+    kind: str = "strip",
     jitter: float = 0.2,
     show_mean: bool = False,
     show_median: bool = False,
@@ -113,9 +194,17 @@ def pavlab_stripchart(
         An array of floats → viridis colormap + colorbar.
     color_label : str, optional
         Colorbar label for continuous color.
+    kind : "strip" | "swarm"
+        ``"strip"`` (default) applies uniform random horizontal jitter
+        within each group column (width controlled by ``jitter``).
+        ``"swarm"`` packs points non-overlappingly using a beeswarm
+        algorithm: points are placed in order of y, each at the smallest
+        x-offset that doesn't bring its marker within marker-diameter of
+        any already-placed point. ``jitter`` is ignored under swarm.
     jitter : float
         Half-width of uniform horizontal jitter applied within each group
-        column. Default 0.2. Set 0 to disable.
+        column when ``kind="strip"``. Default 0.2. Set 0 to disable.
+        Ignored when ``kind="swarm"``.
     show_mean : bool
         If True, draw the grand mean of all y values as a full-width dashed
         horizontal line (gray-400, linewidth=1, zorder below points).
@@ -224,10 +313,17 @@ def pavlab_stripchart(
             )
         y_arr = _apply_log(y_arr, y_kind, pseudocount)
 
-    # ---- build integer x positions + jitter ----------------------------
+    # ---- build integer x positions -------------------------------------
+    # Swarm offsets depend on the axes transform (display pixels), so we
+    # defer computing them until after the figure / ax / xlim are set up.
+    # Strip-mode jitter is independent and can be applied now.
+    kind_norm = kind.lower() if isinstance(kind, str) else "strip"
+    if kind_norm not in ("strip", "swarm"):
+        raise ValueError(f"kind must be 'strip' or 'swarm', got {kind!r}")
+
     group_index = {g: i for i, g in enumerate(unique_groups)}
     x_int = np.array([group_index[g] for g in x_raw.tolist()], dtype=float)
-    if jitter > 0:
+    if kind_norm == "strip" and jitter > 0:
         x_int = x_int + np.random.uniform(-jitter, jitter, size=n)
 
     # ---- colour resolution ---------------------------------------------
@@ -262,6 +358,34 @@ def pavlab_stripchart(
     ax.spines["right"].set_visible(False)
 
     label_pt, tick_pt = _font_sizes(label_size)
+
+    # ---- set axis limits FIRST so swarm offsets can use the transform ---
+    # (swarm packing runs in display pixels via ax.transData; we need the
+    # final xlim/ylim before the inverse transform is meaningful)
+    ax.set_xticks(range(len(unique_groups)))
+    ax.set_xticklabels(unique_groups)
+    ax.set_xlim(-0.5, len(unique_groups) - 0.5)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    else:
+        fy = y_arr[np.isfinite(y_arr)]
+        if origin_zero and fy.size > 0 and float(fy.min()) >= 0:
+            ax.set_ylim(bottom=0)
+
+    # ---- swarm offsets (per group, after xlim/ylim are fixed) ----------
+    if kind_norm == "swarm" and n > 0:
+        # Use the same marker size that will be passed to scatter.
+        ps_for_swarm = float(point_size) if point_size is not None else (
+            20.0 if n <= _N_ALPHA else 10.0
+        )
+        groups_arr = np.array([group_index[g] for g in x_raw.tolist()], dtype=int)
+        x_int = np.array(x_int, dtype=float, copy=True)
+        for gi in range(len(unique_groups)):
+            mask = groups_arr == gi
+            if not np.any(mask):
+                continue
+            offs = _swarm_x_offsets(y_arr[mask], ax, ps_for_swarm)
+            x_int[mask] = gi + offs
 
     # ---- mean / median reference lines (below points) ------------------
     if (show_mean or show_median) and n > 0:
@@ -318,19 +442,6 @@ def pavlab_stripchart(
 
     if legend_handles:
         ax.legend(handles=legend_handles, frameon=False, fontsize=tick_pt)
-
-    # ---- x-axis ticks + labels -----------------------------------------
-    ax.set_xticks(range(len(unique_groups)))
-    ax.set_xticklabels(unique_groups)
-    ax.set_xlim(-0.5, len(unique_groups) - 0.5)
-
-    # ---- y-axis limits -------------------------------------------------
-    if ylim is not None:
-        ax.set_ylim(ylim)
-    else:
-        fy = y_arr[np.isfinite(y_arr)]
-        if origin_zero and fy.size > 0 and float(fy.min()) >= 0:
-            ax.set_ylim(bottom=0)
 
     # ---- axis labels + title -------------------------------------------
     xl = xlabel or ""

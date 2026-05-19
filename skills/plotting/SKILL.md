@@ -16,9 +16,14 @@ description: >
   apply), or for any "publication-quality figure" / "lab style heatmap" /
   "expression heatmap" / "correlation heatmap" / "make a pheatmap with our
   defaults" request. Composes with: any matrix-producing analysis (DE
-  results, expression matrices, gene-gene correlations); the same
-  conventions will extend to scatter/strip/swarm/boxplot helpers planned for
-  v0.2.
+  results, expression matrices, gene-gene correlations). Distributional
+  helpers extend the same conventions: `pavlab_scatter`, `pavlab_density`
+  (KDE / histogram / violin), `pavlab_stripchart` with `kind="strip"`
+  (jittered) or `kind="swarm"` (non-overlapping beeswarm packing — the
+  lab default for showing the data), and `pavlab_boxplot` for the
+  occasions a box is needed (used sparingly: ships with raw data points
+  AND a mean ± SE error bar baked in so the chart isn't quartile-only,
+  which is the lab anti-pattern).
 ---
 
 # plotting
@@ -507,7 +512,8 @@ p + ggplot2::geom_boxplot(alpha = 0, width = 0.3)   # overlay a boxplot
 | Parameter | Default | Effect |
 |---|---|---|
 | `color` | NULL/None → black | same semantics as scatter: uniform, categorical-accent, viridis |
-| `jitter` | 0.2 | horizontal jitter half-width within each column |
+| `kind` | "strip" | `"strip"` = uniform jitter; `"swarm"` = non-overlapping beeswarm packing (Python: built-in; R: requires `ggbeeswarm`) |
+| `jitter` | 0.2 | horizontal jitter half-width when `kind="strip"`; ignored under swarm |
 | `show_mean` | FALSE/False | dashed grey line at **grand mean** across full plot |
 | `show_median` | FALSE/False | dotted grey line at **grand median** across full plot |
 | `order` | NULL/None | explicit group order; unknown groups appended (R) or warned (Py) |
@@ -516,6 +522,97 @@ p + ggplot2::geom_boxplot(alpha = 0, width = 0.3)   # overlay a boxplot
 
 Mean line style: dashed `--`, gray-400 (`#9ca3af`).
 Median line style: dotted `:`, same color.
+
+### When to pick strip vs. swarm
+
+`kind="strip"` is the right default for small-to-medium N (≲ 200 per group)
+where the random jitter doesn't visually overlap much. `kind="swarm"` is
+the better choice when points pile up within a group and the random
+jitter starts to look like a blob; the beeswarm packs them
+non-overlappingly so the shape of the distribution becomes legible at a
+glance. Swarm gets expensive (O(n²) per group) above a few thousand
+points per group — for those, switch to `pavlab_density` instead.
+
+---
+
+# pavlab_boxplot — v0.2 (Python + R)
+
+Used **sparingly** — the lab default for distributional summaries is
+`pavlab_stripchart` (raw points). When a boxplot is the right tool
+(multi-panel layouts where visual compactness matters), this helper
+defaults to **raw points underneath + box**. There is intentionally
+no error-bar parameter: the box's own whiskers + IQR + median IS the
+spread visualisation, and overlaying a separate SD or CI bar on top
+just doubles the spread cue.
+
+Two modes:
+
+- `show_points=True` (default): swarmed raw points under the box.
+- `show_points=False`: compact box-only chart (multi-panel layouts
+  where every pixel counts; whiskers and IQR still carry the spread).
+
+## Quick start
+
+```python
+from pavlab_boxplot import pavlab_boxplot
+
+# default: swarmed points + box
+pavlab_boxplot(genotype, expression, ylabel="Expression")
+
+# compact box (no points) — whiskers still convey spread
+pavlab_boxplot(genotype, expression, show_points=False)
+
+# jittered (strip) points instead of swarmed
+pavlab_boxplot(genotype, expression, points_kind="strip")
+```
+
+```r
+source("R/palettes.R"); source("R/pavlab_scatter.R"); source("R/pavlab_boxplot.R")
+
+pavlab_boxplot(genotype, expression)
+pavlab_boxplot(genotype, expression, show_points = FALSE)
+pavlab_boxplot(genotype, expression, points_kind = "strip")
+```
+
+## Key parameters
+
+| Parameter | Default | Effect |
+|---|---|---|
+| `show_points` | True / TRUE | draw raw data points under the box |
+| `points_kind` | `"swarm"` | `"swarm"` (packed) or `"strip"` (jittered) — swarm needs `ggbeeswarm` in R |
+| `jitter` | 0.2 | jitter half-width when `points_kind="strip"` |
+| `box_width` | 0.55 | box width in x-data units |
+| `color` | None / NULL | colours the **points layer only** — the box always uses lab structural colour |
+| `order`, `log_y`, `origin_zero`, `ylim`, `xlabel`, `ylabel`, `title`, `filename`, `figsize`, `point_size`, `ax` (Python only) | | same as `pavlab_stripchart` |
+
+## Visual conventions
+
+- Box fill: gray-100 `#f3f4f6` (very pale) so points underneath stay readable
+- Box outline + median + whiskers: gray-800 `#1f2937` (TEXT)
+- Median line slightly heavier than box outline
+- No outlier fliers (the raw points already show outliers)
+- Points: gray-700 `#374151` by default; categorical/numeric `color=` recolours **only the points layer**, not the box
+
+## Cross-plot rule: error bars are never SEM (for the helpers that have them)
+
+`pavlab_boxplot` intentionally has no `error=` parameter — the box +
+whiskers + IQR already convey the data's spread. But for future
+helpers that DO draw error bars (forest plots, parameter-estimate
+charts, etc.), the lab-wide convention is:
+
+- **`"sd"`** — sample standard deviation. Used when the chart plots
+  the **raw data** and an explicit spread cue is needed.
+- **`"ci95"`** — 95% confidence interval (mean ± 1.96 × SE). Used when
+  the chart plots **parameter estimates** (means of means, regression
+  coefficients, model fits). Communicates uncertainty on the estimate.
+
+**SEM is rejected.** Future helpers that accept `error=` must reject
+`"se"` / `"sem"` at the API level with a redirect to one of the two
+valid choices. Rationale: SEM shrinks with N — it visually understates
+spread on large-N data and reads misleadingly as a CI without being
+one. SD answers *"how spread is the data?"* and CI answers *"how
+certain is the estimate?"* — picking the right one for the chart's
+purpose is more informative than the historically-conventional SEM.
 
 ---
 

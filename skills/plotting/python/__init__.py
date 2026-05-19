@@ -11,6 +11,7 @@
 from .pavlab_heatmap import pavlab_heatmap      # noqa: F401
 from .pavlab_scatter import pavlab_scatter      # noqa: F401
 from .pavlab_stripchart import pavlab_stripchart  # noqa: F401
+from .pavlab_boxplot import pavlab_boxplot      # noqa: F401
 from .pavlab_density import pavlab_density      # noqa: F401
 from .palettes import (  # noqa: F401
     black_body_palette,
