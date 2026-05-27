@@ -5,11 +5,13 @@ Fetches a Google Doc via the Docs REST API (service account auth) and returns
 the text of its reference section for parse_text().
 
 Authentication:
-  Reads service account credentials from the macOS Keychain under the entry
-  name "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS".  The value may be:
+  Service account credentials are resolved in order from:
+    1. the GOOGLE_SERVICE_ACCOUNT_CREDENTIALS environment variable
+    2. on macOS only, the Keychain entry "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS"
+  The value may be:
     - a hex-encoded JSON string  (produced by some keychain tools)
     - a raw JSON string           {"type":"service_account",...}
-    - a file path                 /path/to/key.json
+    - a file path                 /path/to/key.json (or C:\\path\\to\\key.json)
 
 The service account email ("GOOGLE_SERVICE_ACCOUNT_EMAIL") is stored
 separately and is looked up only for display / error messages.
@@ -28,8 +30,10 @@ from __future__ import annotations
 
 import binascii
 import json
+import os
 import re
 import subprocess
+from pathlib import Path
 from typing import Any
 
 _REF_HEADINGS = {"references", "bibliography", "works cited", "literature cited"}
@@ -47,19 +51,26 @@ def _doc_id_from_url(url_or_id: str) -> str:
 
 
 def _load_credentials() -> dict[str, Any]:
-    result = subprocess.run(
-        ["security", "find-generic-password",
-         "-s", "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS", "-w"],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
+    raw = os.environ.get("GOOGLE_SERVICE_ACCOUNT_CREDENTIALS", "").strip()
+    if not raw:
+        try:
+            result = subprocess.run(
+                ["security", "find-generic-password",
+                 "-s", "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS", "-w"],
+                capture_output=True, text=True,
+            )
+            if result.returncode == 0:
+                raw = result.stdout.strip()
+        except FileNotFoundError:
+            pass  # Not on macOS, or `security` unavailable.
+    if not raw:
         raise RuntimeError(
-            "Service account credentials not found in Keychain.\n"
-            "Add them with:\n"
+            "Service account credentials not found.\n"
+            "Set GOOGLE_SERVICE_ACCOUNT_CREDENTIALS to the JSON, a file path,\n"
+            "or (macOS) store it in the Keychain:\n"
             '  security add-generic-password -s "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS" '
             '-a "$USER" -w "$(cat /path/to/key.json)" -U'
         )
-    raw = result.stdout.strip()
     # Hex-encoded JSON (some macOS keychain tools encode binary-safe)
     if re.match(r"^[0-9a-fA-F]+$", raw) and len(raw) % 2 == 0:
         try:
@@ -68,12 +79,13 @@ def _load_credentials() -> dict[str, Any]:
             pass
     if raw.startswith("{"):
         return json.loads(raw)
-    if raw.startswith("/"):
-        with open(raw) as f:
+    candidate = Path(raw)
+    if candidate.is_file():
+        with candidate.open(encoding="utf-8") as f:
             return json.load(f)
     raise RuntimeError(
-        "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS keychain entry is not a JSON object "
-        "or a file path.  Expected the full service account key JSON."
+        "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS is not a JSON object or a file path. "
+        "Expected the full service account key JSON."
     )
 
 

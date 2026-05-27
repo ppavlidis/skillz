@@ -9,6 +9,7 @@ Run from skills/plotting/:
 from __future__ import annotations
 
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -20,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "python"))
 from pavlab_heatmap import pavlab_heatmap  # noqa: E402
 
 rng = np.random.default_rng(42)
-out_dir = Path("/tmp/pavlab_heatmap_demo_py")
+out_dir = Path(tempfile.gettempdir()) / "pavlab_heatmap_demo_py"
 out_dir.mkdir(parents=True, exist_ok=True)
 
 # ---- 1. Expression heatmap: 20 genes x 12 samples, planted block signal ----

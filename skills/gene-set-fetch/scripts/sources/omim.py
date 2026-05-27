@@ -58,10 +58,10 @@ def _get_api_key() -> str:
             pass
     die(
         "No OMIM API key found.\n"
-        "  Register at https://www.omim.org/api and store your key:\n"
-        "    security add-generic-password -s OMIM_API_KEY -a <email> -w <key>\n"
-        "  Or set the OMIM_API_KEY environment variable.\n"
-        "  Override the Keychain entry name via OMIM_KEYCHAIN_ENTRY env var.",
+        "  Register at https://www.omim.org/api and either:\n"
+        "    - set the OMIM_API_KEY environment variable (any OS), or\n"
+        "    - (macOS) store it in the Keychain:\n"
+        "        security add-generic-password -s OMIM_API_KEY -a <email> -w <key>",
         fetcher=SOURCE_NAME,
     )
 

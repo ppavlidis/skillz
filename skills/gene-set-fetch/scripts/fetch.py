@@ -26,7 +26,7 @@ CACHE_DIR = Path.home() / ".cache" / "gene-set-fetch"
 
 
 def load_registry() -> dict:
-    with REGISTRY_PATH.open() as f:
+    with REGISTRY_PATH.open(encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 

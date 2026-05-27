@@ -23,3 +23,12 @@ My collection of Claude-and-friends skills, agents, and bits.
 ## Installing a skill
 
 Each skill is a directory under `skills/` containing a `SKILL.md`. To install one in Claude Code, either drop the folder into your skills directory or package it into a `.skill` file with the skill-creator tool and drag it into the app.
+
+## Platform note
+
+These skills were developed and tested on macOS. The Python and R helpers
+aim to be portable — paths go through `pathlib` / `tempfile`, text files
+are opened as UTF-8, and credentials fall back from environment variables
+to the macOS Keychain — but Linux and Windows are not part of routine CI,
+so the odd shell-ism or default-encoding wart may still need tweaking.
+File an issue (or a PR) if something doesn't run for you on another OS.

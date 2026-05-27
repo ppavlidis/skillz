@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Demo: produce one heatmap per mode against synthetic data and write them to
-# /tmp. Run via:
+# the per-user tempdir. Run via:
 #   Rscript examples/heatmap_demo.R
 # (from the plotting/ directory).
 
@@ -10,7 +10,7 @@ suppressPackageStartupMessages({
 })
 
 set.seed(42)
-out_dir <- "/tmp/pavlab_heatmap_demo"
+out_dir <- file.path(tempdir(), "pavlab_heatmap_demo")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
 # ---- 1. Expression heatmap: 20 genes x 12 samples, planted block signal ----

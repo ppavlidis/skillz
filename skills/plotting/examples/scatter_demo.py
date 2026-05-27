@@ -4,12 +4,13 @@
 Run from skills/plotting/:
     .venv/bin/python examples/scatter_demo.py
 
-Outputs five PNGs to /tmp/pavlab_scatter_demo_py/.
+Outputs five PNGs to <tempdir>/pavlab_scatter_demo_py/.
 """
 
 from __future__ import annotations
 
 import sys
+import tempfile
 import warnings
 from pathlib import Path
 
@@ -21,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "python"))
 from pavlab_scatter import pavlab_scatter  # noqa: E402
 
 rng = np.random.default_rng(42)
-out_dir = Path("/tmp/pavlab_scatter_demo_py")
+out_dir = Path(tempfile.gettempdir()) / "pavlab_scatter_demo_py"
 out_dir.mkdir(parents=True, exist_ok=True)
 
 

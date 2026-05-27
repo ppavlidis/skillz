@@ -287,7 +287,7 @@ def _load_hit_list(path: Path, gene_col: str) -> set[str]:
     """Accept either a TSV with a `gene_col` column, OR a plain-text file with
     one symbol per line.
     """
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         first = f.readline()
     if "\t" in first or (gene_col != "symbol" and "," in first):
         # Treat as a TSV.
@@ -300,7 +300,7 @@ def _load_hit_list(path: Path, gene_col: str) -> set[str]:
         return {s.upper() for s in df[gene_col].dropna() if s}
     # Plain-text, one symbol per line. Allow leading hashes / blank lines.
     syms: set[str] = set()
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
