@@ -1,24 +1,15 @@
 ---
 name: ontology-terms
 description: >
-  Fetches ontology term operations (immediate parents, immediate children,
-  definition / label, free-text search) for any OBO Foundry biomedical
-  ontology — GO, MONDO, MP, HP, CL, UBERON, DOID, and similar — from one of
-  several sources (OLS at EBI as the default; Gemma's annotations API when
-  lab alignment is needed or for its strong search). Writes provenance-stamped
-  TSV + sidecar meta.json artifacts to a user cache. Use this skill whenever
-  a user asks about ontology term hierarchy ("what are the parents of GO:0006915",
-  "give me the immediate children of MONDO:0000408", "definition of MP:0001262",
-  "search HP for hippocampus", "what's directly above 'apoptotic process'"),
-  or asks for an ontology-related lookup where reproducibility and source
-  attribution matter — including phrasings like "ontology lookup", "OBO term",
-  "GO term parents/children/definition", "search MP/HP/DOID/MONDO". Accepts
-  both compact term IDs (GO:0006915) and full OBO URIs
-  (http://purl.obolibrary.org/obo/GO_0006915) and converts between them
-  automatically. Distinct from any gene-set or enrichment skill: this is
-  about *the structure of the ontology itself*, not about gene-to-term
-  annotations. Composes well with gene-set-fetch (use the term hierarchy
-  to construct a gene background; use the gene set as input to enrichment).
+  Ontology term operations (immediate parents, immediate children,
+  definition / label, free-text search) for OBO Foundry biomedical
+  ontologies — GO, MONDO, MP, HP, CL, UBERON, DOID, etc. Sources: OLS
+  at EBI (default), Gemma's annotations API. Writes provenance-stamped
+  TSV + meta.json. Accepts compact IDs (GO:0006915) and OBO URIs. Use
+  for ontology term hierarchy, "parents of GO:0006915", "children of
+  MONDO:0000408", "definition of MP:0001262", or any OBO term lookup.
+  Distinct from gene-set / enrichment skills — this is about ontology
+  structure itself, not gene-to-term annotations.
 ---
 
 # ontology-terms

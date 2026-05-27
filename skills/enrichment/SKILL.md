@@ -1,22 +1,14 @@
 ---
 name: enrichment
 description: >
-  Stringent gene-set enrichment via the precision-recall (PR) AUC method of
-  Ballouz, Pavlidis & Gillis (2017) as implemented in ermineJ/ermineR.
-  Takes a ranked or scored gene list plus a library of gene sets (default:
-  GO biological process; also accepts GMT files for KEGG/Reactome/MSigDB/
-  custom sets) and reports per-set PR-AUC, permutation-based p-values,
-  BH-adjusted q-values, and — critically — multifunctionality-corrected
-  p-values that flag enrichments driven by always-multifunctional genes
-  (TP53/TNF/TGFB1/etc.) rather than the specific biology of the input.
-  Use this skill for ANY gene-set enrichment question — "is my gene list
-  enriched for apoptosis", "which GO terms are over-represented in these
-  DE genes", "test these top hits against MSigDB hallmark sets", "rank
-  KEGG pathways by enrichment in this scored gene list". Distinct from
-  naive Fisher's-exact tools (more stringent than ORA on small ranked
-  lists), ROC-AUC tools (more stringent for small sets), and from
-  gene-statistics (which produces the MF scores this skill consumes for
-  correction). Composes with: gene-set-fetch (background), gene-statistics
+  Stringent gene-set enrichment via PR-AUC (Ballouz, Pavlidis & Gillis 2017,
+  ermineJ/ermineR). Takes a ranked/scored gene list + gene sets (default GO
+  BP; GMT files for KEGG/Reactome/MSigDB) and reports per-set PR-AUC,
+  permutation p-values, BH q-values, and multifunctionality-corrected
+  p-values that flag hits driven by always-multifunctional genes
+  (TP53/TNF/etc.). Use for any gene-set enrichment question — "enriched
+  for apoptosis", "over-represented GO terms in DE genes", "rank KEGG
+  pathways". Composes with gene-set-fetch (background), gene-statistics
   (MF correction), gene-annotations / GAF (default GO library).
 ---
 

@@ -2,17 +2,12 @@
 name: citation-validator
 description: >
   Validate bibliography citations against CrossRef to detect hallucinated
-  references. For each citation checks: (1) does the DOI exist? (2) does
-  the stated metadata (title, year, first author) match CrossRef's record?
-  Accepts BibTeX (.bib), LaTeX bibliographies (.tex with thebibliography
-  environment, .bbl), Word (.docx, via python-docx), PDF (.pdf, via
-  pymupdf), plain-text / Markdown reference lists, and Google Docs URLs. Primary
-  source: CrossRef REST API (the DOI registrar — a 404 definitively means
-  the DOI was never registered). Outputs a TSV report with per-citation
-  status, similarity scores, and flags. v0.2 planned: relevance check —
-  does the paper content match the context in which it is cited? Use this
-  skill whenever a user asks to check references, validate a bibliography,
-  find hallucinated citations, or spot fake DOIs.
+  references — checks DOI existence and metadata match (title, year,
+  first author). Accepts BibTeX (.bib), LaTeX (.tex / .bbl), Word
+  (.docx), PDF, plain-text / Markdown reference lists, and Google Docs
+  URLs. Outputs a TSV report with per-citation status, similarity scores,
+  and flags. Use to check references, validate a bibliography, find
+  hallucinated citations, or spot fake DOIs.
 ---
 
 # citation-validator

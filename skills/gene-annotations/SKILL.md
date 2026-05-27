@@ -1,23 +1,12 @@
 ---
 name: gene-annotations
 description: >
-  Bidirectional gene ↔ GO term annotation lookups: given a GO term, return
-  the genes annotated to it (with child-term annotations propagated by
-  default); given a gene, return the GO terms it's annotated with. Sources
-  are authoritative: GOA via QuickGO at EBI, and NCBI gene2go for an
-  alternative. Default behavior includes child-propagated annotations (so
-  querying GO:0006915 returns genes annotated to that term OR any of its
-  more specific descendants — what most users mean by "give me apoptosis
-  genes"); a --direct flag overrides to direct-only. Use this skill whenever
-  a user asks about gene-to-GO-term annotations — phrasings like "what GO
-  terms is BRCA1 annotated with", "which genes are annotated to GO:0006915",
-  "list genes in the apoptosis GO term", "GO annotations for TP53", "what
-  pathway annotations does INS have". Distinct from the `ontology-terms`
-  skill (which is about the structure of the ontology itself, not gene
-  annotations) and from `gene-set-fetch` (which is about named gene-set
-  catalogs, not GO-based functional annotations). Composes with both:
-  gene-annotations consumes GO term IDs that ontology-terms can resolve,
-  and produces gene lists that share `gene-set-fetch`'s output column shape.
+  Bidirectional gene ↔ GO term annotation lookups: GO term → genes
+  (child-propagated by default; --direct overrides), gene → GO terms.
+  Sources: GOA via QuickGO at EBI, NCBI gene2go. Use for "GO terms for
+  BRCA1", "genes annotated to GO:0006915", "genes in apoptosis GO term",
+  "GO annotations for TP53". Distinct from ontology-terms (ontology
+  structure) and gene-set-fetch (named catalogs).
 ---
 
 # gene-annotations

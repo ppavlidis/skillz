@@ -1,21 +1,14 @@
 ---
 name: gene-statistics
 description: >
-  Per-gene meta-statistics that quantify "gene-level biases" in genomic
-  analyses. v0.1 ships `multifunctionality` — the Gillis & Pavlidis (2011)
-  AUC-style score over GO biological-process annotations: how easily a gene
-  stands out from background by virtue of its annotations alone. High-MF
-  genes appear as top hits in almost every guilt-by-association,
-  enrichment, or differential-expression analysis regardless of the
-  underlying biology, so flagging or correcting for MF is critical for
-  honest interpretation. Future operations include the Differential
-  Expression Prior (Crow, Pavlidis, Gillis 2019) and similar per-gene
-  meta-statistics. Use this skill whenever a user asks about gene
-  multifunctionality, MF score, "is this gene always a hit", DE prior,
-  guilt-by-association bias, or how to flag genes that are statistically
-  privileged in genomic analyses. Distinct from `gene-annotations`
-  (which produces the raw annotations this skill consumes), `ontology-terms`
-  (ontology structure), and `gene-set-fetch` (named gene catalogs).
+  Per-gene meta-statistics quantifying gene-level biases. v0.1 ships
+  `multifunctionality` — the Gillis & Pavlidis (2011) AUC-style score
+  over GO BP annotations that flags genes likely to appear as top hits
+  in any guilt-by-association / enrichment / DE analysis regardless of
+  the underlying biology. Future: Differential Expression Prior (Crow,
+  Pavlidis, Gillis 2019). Use for MF score, "is this gene always a hit",
+  DE prior, guilt-by-association bias. Distinct from gene-annotations
+  (raw annotations), ontology-terms (structure), gene-set-fetch (catalogs).
 ---
 
 # gene-statistics

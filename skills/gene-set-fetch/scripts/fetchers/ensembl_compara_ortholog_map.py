@@ -41,6 +41,7 @@ FETCHER_NAME = "ensembl_compara_ortholog_map"
 SPECIES_REST_NAME = {
     "human": "homo_sapiens",
     "mouse": "mus_musculus",
+    "rat": "rattus_norvegicus",
 }
 
 REST_RATE_LIMIT_SLEEP = 0.07  # seconds per call (~14 req/s, under Ensembl's 15 limit)

@@ -87,7 +87,7 @@ def resolve_set(name: str, registry: dict, ensembl_release: int, refresh: bool, 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Fetch a named gene set (human or mouse) with provenance."
+        description="Fetch a named gene set (human, mouse, or rat) with provenance."
     )
     parser.add_argument("set_name", nargs="?", help="The set to fetch; see registry.yaml for the catalog.")
     parser.add_argument(

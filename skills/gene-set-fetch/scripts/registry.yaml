@@ -116,7 +116,7 @@ sets:
       from_set: tfs_human_lambert2018
       from_species: human
       to_species: mouse
-      best_match: true
+      best_match: false
 
   tfs_mouse_union:
     species: mouse
@@ -133,3 +133,34 @@ sets:
       members:
         - tfs_mouse_animaltfdb
         - tfs_mouse_lambert_orthologs
+
+  tfs_rat_animaltfdb:
+    species: rat
+    source: animaltfdb
+    args:
+      species_code: Rattus_norvegicus
+
+  tfs_rat_lambert_orthologs:
+    species: rat
+    source: ensembl_compara_ortholog_map
+    args:
+      from_set: tfs_human_lambert2018
+      from_species: human
+      to_species: rat
+      best_match: false
+
+  tfs_rat_union:
+    species: rat
+    compose:
+      op: union
+      members:
+        - tfs_rat_animaltfdb
+        - tfs_rat_lambert_orthologs
+
+  tfs_rat_intersection:
+    species: rat
+    compose:
+      op: intersection
+      members:
+        - tfs_rat_animaltfdb
+        - tfs_rat_lambert_orthologs

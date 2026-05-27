@@ -6,32 +6,36 @@ challenge in front of the static download paths. A plain HTTP client
 (requests, curl, wget) sees an `acw_sc__v2` cookie-setter HTML page
 instead of the file.
 
-This fetcher's job, until upstream relaxes the JS challenge or the file
-is mirrored elsewhere, is to fail loud with a clear pointer to the manual
-download UI and an explanation of the situation. Composites that depend
-on `tfs_human_animaltfdb` / `tfs_mouse_animaltfdb` (e.g.
-`tfs_human_intersection`) will therefore also fail until a workaround is
-in place.
+This fetcher supports a **manual-placement workflow** as a workaround.
+If a raw AnimalTFDB TSV is present at one of:
 
-**Manual workaround:** download the species TF file from
-https://guolab.wchscu.cn/AnimalTFDB4/ via a real browser, then place it at
-the cache path the fetcher prints in its error message. Re-run.
+  - ``$ANIMALTFDB_RAW_DIR/{species_code}_TF.txt``
+  - ``~/Downloads/{species_code}_TF.txt`` (user's typical download spot)
 
-**Long-term options:** add a Playwright-based fetcher (heavy dep), find a
+…the fetcher reads it, normalises to the skill's standard schema, and
+writes the cached artifact + sidecar meta. The `source_version_tag`
+includes ``manual-`` plus the sha256-prefix of the raw file so the cache
+key still encodes upstream identity.
+
+Long-term options: add a Playwright-based fetcher (heavy dep), find a
 mirror, or fall back to TF lists from a different authority. See the
 "v2 candidates" section of SKILL.md.
 """
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pandas as pd
 
 from ._common import (
+    SourceInfo,
     cache_paths,
     die,
     iso_now,
+    sha256_file,
+    write_artifact,
 )
 
 FETCHER_NAME = "animaltfdb"
@@ -44,6 +48,7 @@ CANDIDATE_URLS = [
 SPECIES_CODES = {
     "human": "Homo_sapiens",
     "mouse": "Mus_musculus",
+    "rat": "Rattus_norvegicus",
 }
 
 
@@ -60,16 +65,93 @@ def fetch(
         die(f"unsupported species: {species}", fetcher=FETCHER_NAME)
 
     species_code = args.get("species_code", SPECIES_CODES[species])
+
+    # ---- Manual-placement workflow ----------------------------------
+    # If the user has the raw AnimalTFDB file locally (Paul's pattern:
+    # download via browser, drop in ~/Downloads), read + normalise it
+    # into the cache. The cache_version tag pins the artifact to the
+    # raw file's sha256 prefix so a different upstream snapshot
+    # produces a different cache key.
+    manual_dir_env = os.environ.get("ANIMALTFDB_RAW_DIR")
+    manual_candidates = []
+    if manual_dir_env:
+        manual_candidates.append(Path(manual_dir_env) / f"{species_code}_TF.txt")
+    manual_candidates.append(Path.home() / "Downloads" / f"{species_code}_TF.txt")
+
+    raw_path: Path | None = None
+    for cand in manual_candidates:
+        if cand.exists():
+            raw_path = cand
+            break
+
+    if raw_path is not None:
+        raw_sha = sha256_file(raw_path)
+        source_version_tag = f"animaltfdb4-manual-{raw_sha[:12]}"
+        tsv_path, _meta_path = cache_paths(name, ensembl_release, source_version_tag, cache_dir, out)
+        if not refresh and tsv_path.exists():
+            return tsv_path
+
+        # Raw schema (verified for human/mouse/rat 2026-05-26):
+        # Species  Symbol  Ensembl  Family  Protein  Entrez_ID
+        raw = pd.read_csv(raw_path, sep="\t", dtype=str, keep_default_na=False)
+        required = {"Species", "Symbol", "Ensembl", "Family", "Entrez_ID"}
+        missing = required - set(raw.columns)
+        if missing:
+            die(
+                f"AnimalTFDB raw file at {raw_path} is missing columns: {missing}",
+                fetcher=FETCHER_NAME,
+            )
+        # Normalise to standard schema. AnimalTFDB rows occasionally
+        # have empty Symbol (Ensembl-only); keep them but flag.
+        out_df = pd.DataFrame({
+            "ensembl_id": raw["Ensembl"].astype(str).str.strip(),
+            "symbol": raw["Symbol"].astype(str).str.strip(),
+            "entrez_id": raw["Entrez_ID"].astype(str).str.strip()
+                .replace({"NA": "", "nan": ""}),
+            "species": species,
+            "source": name,
+            "family": raw["Family"].astype(str).str.strip(),
+        })
+        # Drop rows with neither ensembl_id nor symbol.
+        out_df = out_df[(out_df["ensembl_id"] != "") | (out_df["symbol"] != "")].reset_index(drop=True)
+        # De-duplicate on ensembl_id (some rows lack one; keep all such).
+        non_empty = out_df["ensembl_id"] != ""
+        deduped_ens = out_df[non_empty].drop_duplicates(subset=["ensembl_id"])
+        symbol_only = out_df[~non_empty]
+        out_df = pd.concat([deduped_ens, symbol_only], ignore_index=True)
+
+        return write_artifact(
+            df=out_df,
+            name=name,
+            species=species,
+            ensembl_release=ensembl_release,
+            source=SourceInfo(
+                url=f"file://{raw_path}",
+                version=(
+                    "AnimalTFDB v4 — manually downloaded raw file "
+                    f"(upstream JS-challenged; placed at {raw_path})"
+                ),
+                sha256=raw_sha,
+                durability=(
+                    "manual placement; upstream guolab.wchscu.cn is "
+                    "JS-challenged. If the raw file is replaced, the "
+                    "cache key changes (sha256 in version tag)."
+                ),
+                notes=f"raw_columns={list(raw.columns)}, n_raw={len(raw)}, n_norm={len(out_df)}",
+            ),
+            cache_dir=cache_dir,
+            out=out,
+            source_version_tag=source_version_tag,
+            extra_meta={
+                "manual_raw_path": str(raw_path),
+                "manual_raw_sha256": raw_sha,
+            },
+        )
+
+    # ---- Upstream attempt (currently broken; fail loud) -------------
     today = iso_now().split("T")[0]
     source_version_tag = f"animaltfdb4-{today}"
-
     tsv_path, _meta_path = cache_paths(name, ensembl_release, source_version_tag, cache_dir, out)
-
-    # If the user has manually placed a downloaded AnimalTFDB file at the
-    # expected cache path AND written a matching .meta.json, the dispatcher's
-    # is_fresh check (in fetch.py) will short-circuit before we even get
-    # here. So if we're running, it means there is no manual workaround in
-    # place — fail loud with a clear pointer.
     candidate_urls = [u.format(species_code=species_code) for u in CANDIDATE_URLS]
 
     die(
@@ -82,11 +164,12 @@ def fetch(
         "  Manual workaround:\n"
         f"    1. Open https://guolab.wchscu.cn/AnimalTFDB4/ in a browser\n"
         f"    2. Navigate to Download → TF list → {species_code}\n"
-        f"    3. Save the resulting TSV to: {tsv_path}\n"
-        f"    4. Write a matching sidecar to: {tsv_path.with_suffix(tsv_path.suffix + '.meta.json')}\n"
-        "       (use any other fetcher's .meta.json as a template; the\n"
-        "        source_sha256 should hash the raw downloaded file)\n"
-        "    5. Re-run; the cache check will pick up your manual artifact.\n\n"
+        f"    3. Save the resulting raw TSV to ONE of:\n"
+        f"         ~/Downloads/{species_code}_TF.txt   (default)\n"
+        f"         $ANIMALTFDB_RAW_DIR/{species_code}_TF.txt   (override)\n"
+        "    4. Re-run; the fetcher will read the raw file, normalise it\n"
+        "       to the standard schema, and write the cache + sidecar meta\n"
+        "       under a tag that includes the raw file's sha256 prefix.\n\n"
         f"  Tried these candidate URLs (all blocked or behind JS):\n    "
         + "\n    ".join(candidate_urls),
         fetcher=FETCHER_NAME,

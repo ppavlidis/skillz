@@ -1,25 +1,17 @@
 ---
 name: gene-set-fetch
 description: >
-  Fetches canonical, named gene sets and ad-hoc parameterized gene sets for
-  human and mouse, writing provenance-stamped TSV + sidecar meta JSON to a
-  user cache. Named sets (fetch.py): transcription factors (Lambert 2018,
-  AnimalTFDB), protein-coding genes (Ensembl biotype or strict three-way
-  intersection). Ad-hoc queries (query.py): (1) disease-gene associations —
-  "genes associated with Parkinson disease" via Open Targets (default, free,
-  broad), GWAS Catalog (GWAS hits only), or OMIM (Mendelian, key required);
-  do NOT use literature search for these; (2) genomic structural features —
-  "genes with head-to-head / bidirectional promoter arrangements on chromosome
-  6" via Ensembl BioMart. Use this skill whenever a user asks for a list of
-  genes in some category — TFs, protein-coding, "genes associated with disease
-  X", "genes arranged head-to-head on chromosome Y", Lambert TFs, AnimalTFDB,
-  or any named gene set where reproducibility and source provenance matter.
-  Phrasings include: "give me mouse TFs", "human protein-coding genes",
-  "genes linked to type 2 diabetes", "GWAS hits for schizophrenia",
-  "head-to-head gene pairs on chr6", "bidirectionally transcribed genes".
-  Distinct from gget (gene-centric lookups) and gene-annotations (GO term
-  annotations). Do NOT use literature search or PubMed text-mining for
-  disease-gene sets — if the association isn't in a curated database, say so.
+  Fetches canonical named gene sets and ad-hoc parameterized gene sets
+  (human, mouse), writing provenance-stamped TSV + meta JSON.
+  Named: transcription factors (Lambert 2018, AnimalTFDB), protein-coding
+  (Ensembl). Ad-hoc: disease-gene associations via Open Targets (default),
+  GWAS Catalog, or OMIM; genomic structural features (head-to-head /
+  bidirectional promoters via Ensembl BioMart). Use for "list of genes
+  in category X" requests — TFs, protein-coding, "genes associated with
+  disease X", "head-to-head pairs on chr Y". Distinct from gget
+  (gene-centric lookups) and gene-annotations (GO). Do NOT use literature
+  search for disease-gene sets — if the association isn't in a curated
+  database, say so.
 ---
 
 # gene-set-fetch
@@ -99,12 +91,80 @@ v1 ships these:
 | `tfs_human_union` | human | Lambert ∪ AnimalTFDB |
 | `tfs_human_intersection` | human | Lambert ∩ AnimalTFDB |
 | `tfs_mouse_animaltfdb` | mouse | AnimalTFDB v4 |
-| `tfs_mouse_lambert_orthologs` | mouse | Lambert human TFs → mouse via Ensembl Compara |
+| `tfs_mouse_lambert_orthologs` | mouse | Lambert human TFs → mouse via Ensembl Compara (all homology types) |
 | `tfs_mouse_union` | mouse | AnimalTFDB ∪ Lambert-orthologs |
 | `tfs_mouse_intersection` | mouse | AnimalTFDB ∩ Lambert-orthologs |
+| `tfs_rat_animaltfdb` | rat | AnimalTFDB v4 |
+| `tfs_rat_lambert_orthologs` | rat | Lambert human TFs → rat via Ensembl Compara (all homology types) |
+| `tfs_rat_union` | rat | AnimalTFDB ∪ Lambert-orthologs |
+| `tfs_rat_intersection` | rat | AnimalTFDB ∩ Lambert-orthologs |
 
 Set algebra joins on `ensembl_id`, normalized to a single Ensembl release
 (default 113; override with `--ensembl-release N`).
+
+## Set inventory — last-fetched sizes (read this if you're picking a set)
+
+These are the gene counts at the most recent fetch under the default
+Ensembl release (e113). They tell you, at a glance, whether a set is
+the right size for your question and how aggressively each upstream
+filter culls. **Update this table only when the underlying fetch
+changes** (a refresh, a swap in source version, a registry rule
+change) — it is intended as a baseline, not a live readout.
+
+| Set | Fetched | n_genes | Retention notes |
+|---|---|---:|---|
+| `tfs_human_lambert2018` | 2026-05-16 | **1,637** | All Lambert 2018 supp Table 2 rows with Ensembl ID at e113. The TSV's `entrez_id` column is empty by design — Lambert publishes Ensembl + symbol; join with AnimalTFDB human or use Ensembl REST `/xrefs/id/{eid}` to add Entrez. |
+| `tfs_human_animaltfdb` | 2026-05-26 | **1,659** | Raw AnimalTFDB v4 human download, normalised. Carries `entrez_id` (1,492 non-empty), `ensembl_id`, `symbol`, `family`. |
+| `tfs_human_intersection` | 2026-05-26 | **1,499** | Lambert ∩ AnimalTFDB on `ensembl_id`. Use this as the strictest "sequence-specific DNA-binding TF" set with entrez available. |
+| `tfs_mouse_animaltfdb` | 2026-05-26 | **1,494** | Raw AnimalTFDB v4 mouse, normalised. |
+| `tfs_mouse_lambert_orthologs` | 2026-05-26 | **1,361** | Mouse 1:1 + 1:many + many:many orthologs of Lambert human Ensembl IDs via Ensembl Compara REST. `best_match=False` keeps paralog expansions — important for TF families. `symbol` is empty in this artifact; if you need symbols, enrich via `lookup/id` POST batch on the target IDs. |
+| `tfs_mouse_intersection` | 2026-05-26 | **1,221** | `tfs_mouse_lambert_orthologs ∩ tfs_mouse_animaltfdb` on `ensembl_id`. 1,167 carry Entrez (from AnimalTFDB). |
+| `tfs_rat_animaltfdb` | 2026-05-26 | **1,461** | Raw AnimalTFDB v4 rat, normalised. |
+| `tfs_rat_lambert_orthologs` | 2026-05-26 | **1,318** | Same shape as mouse-orthologs; rat via Compara (`best_match=False`). |
+| `tfs_rat_intersection` | 2026-05-26 | **1,104** | `tfs_rat_lambert_orthologs ∩ tfs_rat_animaltfdb` on `ensembl_id`. 1,088 carry Entrez. |
+| `protein_coding_human` | 2026-05-16 | ~19,000 | Ensembl biotype `protein_coding`. Loose; includes pseudogenes flagged in HGNC. |
+| `protein_coding_human_strict` | 2026-05-16 | ~18,000 | Ensembl ∩ HGNC ∩ GENCODE three-way agreement. |
+| `protein_coding_mouse` | 2026-05-16 | ~21,000 | Ensembl biotype `protein_coding`. |
+| `protein_coding_mouse_strict` | 2026-05-16 | ~20,000 | Ensembl ∩ MGI ∩ GENCODE. |
+
+### How to extend the rodent TF coverage
+
+If you're doing cross-species TF analysis, the canonical paths are:
+
+- **Strictest sequence-specific** → use `tfs_{species}_intersection`.
+  Costs a few hundred genes per species but lets you cite Lambert's
+  definition. Carries `entrez_id` for mouse/rat.
+- **Permissive** → `tfs_{species}_animaltfdb` alone (AnimalTFDB is
+  broader than Lambert; includes chromatin co-factors, some splicing
+  regulators, etc.). Use only if you've decided the broader scope
+  matches your question.
+- **Cross-species union** → concatenate the three intersections,
+  dedup on `entrez_id`. Yields ~3,600 unique Entrez IDs across
+  human / mouse / rat (each species' set contributes ~1,100–1,500).
+
+### When NOT to use `best_match=True` on Compara
+
+The `tfs_{species}_lambert_orthologs` recipes use `best_match: false`
+by default (2026-05-26). The earlier default (`true`) restricted to
+1:1 orthologs only, which silently dropped TF paralogs and family
+expansions — e.g. several mouse `Zfp*` paralogs of a single human
+`ZNF*` TF would be lost. If you want strict 1:1 (e.g. for
+expression-quantitative comparisons that assume one-to-one
+correspondence), pass `best_match: true` explicitly in a local
+registry override; otherwise leave it false.
+
+## Caching is on by default
+
+Re-running `fetch.py <set>` after a successful fetch is a no-op: the
+dispatcher's `is_fresh` check confirms both the TSV and its sidecar
+meta exist, and short-circuits. **To force a re-fetch, pass
+`--refresh`.** Same for `query.py`.
+
+The cache filename encodes `set-name × ensembl-release ×
+source-version-tag`, so a source-version bump (e.g. AnimalTFDB
+raw-file sha changes, Ensembl Compara `best_match` flips) produces
+a new cache key and a new file alongside the old — you can diff if
+needed.
 
 ## How to use it
 

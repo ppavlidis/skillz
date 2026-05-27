@@ -1,58 +1,17 @@
 ---
 name: architecture-figures
 description: >
-  Matplotlib primitives for hand-authored architecture / methods /
-  pipeline / lifecycle figures in a flat, modern, publication-grade
-  style. Ships `pavlab_arch.primitives` with reusable helpers:
-  `stage_box` (LLM vs deterministic styling, auto-shrinking text),
-  `dual_stage_box` (diagonally-split two-colour stage for hybrid
-  AI+curator phases — each half carries the matching tint fill and
-  border colour of a normal `stage_box`), `stack_box` (pile of
-  experiments with a ticket on top — for "set + task" work items
-  like ticket queues or evaluation batches), `ensemble_proposer`
-  (parallel mini-boxes for "union of two proposers"), `perf_gauge`
-  (horizontal F1 bar with optional curator-corrected overlay;
-  luminosity-balanced palette), `lane_arrow` (lane-aware forward
-  arrow: same-lane straight, cross-lane smooth L via `angle3` —
-  replaces the bent small-rad `arc3` arcs), `legend_block` (compact
-  vertical legend, chip-left + text-right, position-parameterised),
-  `oval` (pill / fully-rounded rectangle for molecule-like nodes),
-  `circle` (true circle for hub / radial-diagram centres),
-  `cylinder` (the conventional database-of-record symbol — visually
-  distinct from pills/rectangles to mark the system-of-record),
-  `container` (dashed grouping rectangle for "these belong together"
-  groupings like Front-End / Back-End mega-regions),
-  `labeled_arrow` (arrow + label in one call — the general
-  "edges-with-labels" pattern: state-machine transitions, enzymes,
-  protocols, ER cardinalities), `gantt_bar` + `today_line` +
-  `GanttTask` (flat / modern Gantt-chart primitives sharing the
-  skill's palette and aesthetic) with progress overlays
-  `gantt_variance` (per-row red overlay for behind/overdue rows
-  relative to today, since a Gantt is a plan and reality drifts) and
-  `gantt_bar_two_tier` + `gantt_bold_changed_labels` (T1 -> T2
-  snapshot diff: pale top tier = earlier state, full bottom tier =
-  state now, bold y-tick labels for rows whose status changed),
-  `arrow` (thick arrows; `linestyle`
-  and `style` knobs cover dashed, open-headed, two-way `<|-|>`, and
-  headless variants), `box` (with `linestyle` for dashed borders and
-  `text_style` for italic labels), and `fit_text`. Plus
-  `pavlab_arch.layout` with three canonical figure shapes
-  (`slide` 16:9, `square` 1:1, `wide_half` 3:1 for full-page-width /
-  half-height) and a `grid_columns` helper that lays out N columns
-  without overlap regardless of label length, and
-  `pavlab_arch.style.apply_rcparams()` for the canonical Helvetica +
-  white-facecolor + editable-SVG defaults. Use this skill whenever
-  building a figure that compares pipeline architectures, diagrams
-  a workflow lifecycle with feedback loops, shows a per-stage
-  primer, contrasts LLM vs deterministic components, or surfaces a
-  quantitative metric (F1, accuracy) as a bar gauge instead of a
-  number. The defaults bake in the hard-won lessons from iteration:
-  tight box widths per column, right-aligned method labels flush
-  against the first column, no redundant text duplicating what the
-  diagram shows, thick arrows, gear glyphs for deterministic
-  stages, soft tinted fills for LLM stages, approach-based legends
-  (not model-name legends), `arc3` rad-sign discipline for loop-back
-  arrows, and labels parked off short arcs.
+  Matplotlib primitives for hand-authored architecture, methods, pipeline,
+  and lifecycle figures in a flat publication-grade style. Ships
+  `pavlab_arch.primitives` — boxes (stage_box for LLM vs deterministic
+  styling, dual_stage_box, stack_box, oval, circle, cylinder, container),
+  arrows (lane_arrow, labeled_arrow, arrow), perf_gauge, Gantt primitives
+  (gantt_bar, today_line, variance overlays, two-tier diff), legend_block,
+  ensemble_proposer, and fit_text — plus canonical 16:9 / 1:1 / 3:1
+  layouts, grid_columns helper, and apply_rcparams() for Helvetica +
+  editable-SVG defaults. Use when diagramming pipeline architectures,
+  workflow lifecycles, LLM vs deterministic stages, or surfacing a metric
+  (F1, accuracy) as a bar gauge.
 ---
 
 # architecture-figures

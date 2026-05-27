@@ -2,17 +2,13 @@
 name: nextflow-authoring
 description: >
   Write, structure, and debug Nextflow DSL2 workflows and modules. Covers
-  canonical project layout (nf-core conventions), process authoring (input/output
-  declarations, container/conda directives, label-based resource management,
-  publishDir, errorStrategy), channel operators for bioinformatics (groupTuple,
-  join, branch, splitCsv, scatter-gather patterns), the nf-core module format,
-  subworkflow composition, automatic parallelization mechanics and what breaks
-  it, the config hierarchy with profiles and dynamic resource caps, nf-test
-  authoring with stubs and snapshots, and the nf-schema v2 samplesheet pattern.
-  Use this skill when authoring or debugging Nextflow DSL2 code — creating
-  pipelines from scratch, writing reusable modules, porting DSL1 to DSL2,
-  optimizing parallelization, or setting up nf-test. Distinct from the
-  nextflow-development skill (which runs nf-core pipelines on existing data).
+  nf-core project layout, process authoring (containers, labels,
+  publishDir, errorStrategy), channel operators (groupTuple, join, branch,
+  splitCsv, scatter-gather), subworkflow composition, parallelization
+  mechanics, config/profiles, nf-test, and nf-schema v2 samplesheets. Use
+  when authoring or debugging Nextflow DSL2 code — new pipelines, reusable
+  modules, DSL1→DSL2 ports, parallelization, nf-test. Distinct from
+  nextflow-development (which runs nf-core pipelines on existing data).
 ---
 
 # nextflow-authoring

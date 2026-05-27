@@ -1,17 +1,14 @@
 ---
 name: zotero-plugin
 description: >
-  Expert guide for building, debugging, and releasing Zotero 7–9 plugins. Covers both
-  the classic bootstrapped stack (bootstrap.js + plain JS + manifest.json) and the
-  TypeScript stack built on zotero-plugin-scaffold and zotero-plugin-toolkit. Use this
-  skill whenever someone is creating a Zotero plugin or extension, writing bootstrap.js,
-  hooks.ts, or a plugin JS/TS file, wiring up Zotero menu items, attaching event
-  listeners in a Zotero window, hitting Zotero API methods (Attachments, Notifier, HTTP,
-  Search, ProgressWindow, Prefs, PreferencePanes), configuring a preference pane,
-  debugging a MutationObserver in a React-rendered Zotero UI area, troubleshooting a
-  silent failure in a Zotero extension, setting up or building a zotero-plugin-scaffold
-  project, or releasing a Zotero plugin to GitHub with auto-update support. Even if they
-  just say "Zotero plugin" or "Zotero extension" without further detail, use this skill.
+  Building, debugging, and releasing Zotero 7–9 plugins. Covers the
+  classic bootstrapped stack (bootstrap.js + plain JS + manifest.json)
+  and the TypeScript stack (zotero-plugin-scaffold + zotero-plugin-toolkit).
+  Use when creating a Zotero plugin/extension, writing bootstrap.js or
+  hooks.ts, wiring menu items, attaching listeners, using Zotero APIs
+  (Attachments, Notifier, HTTP, Search, ProgressWindow, Prefs,
+  PreferencePanes), configuring preference panes, debugging
+  MutationObservers in Zotero UI, or releasing with auto-update.
 ---
 
 # Zotero Plugin Development

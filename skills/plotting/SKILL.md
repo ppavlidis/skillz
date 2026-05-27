@@ -1,29 +1,17 @@
 ---
 name: plotting
 description: >
-  Publication-grade plotting helpers (R + Python) that wrap pheatmap /
-  seaborn.heatmap with opinionated lab defaults so figures look consistent
-  across analyses. v0.1 ships `pavlab_heatmap()` in both languages:
-  row-standardized + Z-clipped expression heatmaps, NA-diagonal correlation
-  heatmaps, raw matrices — all with a diverging amber-orange→black→sky-blue
-  palette centered at zero (so zero-ish values look "off"; four other
-  Paul-approved divergent palettes ship as named alternates), a black-body
-  sequential palette (black→red→orange→yellow→white) for non-diverging data,
-  grey for missing values, no clustering by default, and automatic
-  row/column-label hiding when there are too many to be legible. Use this
-  skill whenever a user asks to plot a heatmap (especially for expression
-  data, correlation matrices, or any matrix where the lab's defaults should
-  apply), or for any "publication-quality figure" / "lab style heatmap" /
-  "expression heatmap" / "correlation heatmap" / "make a pheatmap with our
-  defaults" request. Composes with: any matrix-producing analysis (DE
-  results, expression matrices, gene-gene correlations). Distributional
-  helpers extend the same conventions: `pavlab_scatter`, `pavlab_density`
-  (KDE / histogram / violin), `pavlab_stripchart` with `kind="strip"`
-  (jittered) or `kind="swarm"` (non-overlapping beeswarm packing — the
-  lab default for showing the data), and `pavlab_boxplot` for the
-  occasions a box is needed (used sparingly: ships with raw data points
-  AND a mean ± SE error bar baked in so the chart isn't quartile-only,
-  which is the lab anti-pattern).
+  Publication-grade plotting helpers (R + Python) with opinionated lab
+  defaults. Ships `pavlab_heatmap` (wraps pheatmap / seaborn.heatmap;
+  diverging amber-orange→black→sky-blue palette centred at zero,
+  black-body sequential alternate, no clustering by default, auto-hides
+  labels when too many to read), plus distributional helpers
+  `pavlab_scatter`, `pavlab_density` (KDE / histogram / violin),
+  `pavlab_stripchart` (strip or swarm — lab default for showing data),
+  and `pavlab_boxplot` (used sparingly; bakes in raw points + mean ± SE).
+  Use for heatmaps (expression, correlation, any matrix), scatter,
+  density, stripcharts, or any "lab-style figure" / "publication-quality
+  figure" request.
 ---
 
 # plotting
@@ -592,6 +580,96 @@ pavlab_boxplot(genotype, expression, points_kind = "strip")
 - Median line slightly heavier than box outline
 - No outlier fliers (the raw points already show outliers)
 - Points: gray-700 `#374151` by default; categorical/numeric `color=` recolours **only the points layer**, not the box
+
+## Cross-plot rule: no gridlines, ticks visible
+
+Every chart this skill produces — and any hand-authored matplotlib /
+ggplot2 figure that wants to look lab-style — uses **no gridlines** and
+**short outward tick marks on both axes**, regardless of figure type
+(bars, scatter, lines, heatmaps). This applies even when the global
+matplotlib `rcParams` or ggplot's `theme_grey()` default would draw
+gridlines.
+
+**Why:** Gridlines compete with the data marks for visual weight.
+Tick marks alone are sufficient to locate values precisely. The lab
+style is "the data is the figure; everything else is chrome."
+
+**How to apply (matplotlib):** at the top of any figure script, set:
+
+```python
+mpl.rcParams.update({
+    "axes.grid":          False,   # no panel grid
+    "xtick.major.size":   4,       # outward ticks, ~4 pt long
+    "ytick.major.size":   4,
+    "xtick.major.width":  0.8,
+    "ytick.major.width":  0.8,
+    "xtick.direction":    "out",
+    "ytick.direction":    "out",
+    "axes.spines.top":    False,
+    "axes.spines.right":  False,
+})
+```
+
+For per-axes overrides, call `ax.grid(False)` and
+`ax.tick_params(axis="both", which="major", length=4, width=0.8,
+direction="out", color="#6b7280")`.
+
+**How to apply (ggplot2):** use the lab `theme_pavlab()` (or
+`theme_classic()` + `theme(panel.grid = element_blank(),
+axis.ticks = element_line(...))`). Default `theme_grey()` is rejected.
+
+**Override:** if a reviewer or stylistic exception genuinely calls for
+gridlines (e.g., a log-scale plot where the reader needs help locating
+intermediate values), use light gray-200 horizontal lines only and
+state the exception in the figure caption.
+
+---
+
+## Cross-plot rule: figure captions describe, they don't re-explain
+
+Figure captions are not a mini-Methods. The caption describes **what
+the reader is looking at in this image** — the axes, the units, the
+data shown, what the colours / shapes / error bars represent. Anything
+that's a *protocol detail* (sample construction, statistical test
+choice, threshold rationale, model parameters, the order operations
+ran in) belongs in the Methods section, not in the caption.
+
+If the caption needs to nod toward Methods for a specific detail —
+"how was the sample drawn", "which statistical test", "what's the
+threshold" — use a **parenthetical reference**, not a trailing
+sentence:
+
+✔️ `…cross-walk-aware scoring (Methods).`
+✔️ `…Wilson 95 % CIs throughout (see Methods).`
+✔️ `Top-50 retrieval was used for the second-pass call (Methods,
+    *Cell-line pipeline*).`
+
+✖️ `… See Methods.` as a trailing sentence on every caption —
+    reads as filler, signals nothing the reader didn't infer from the
+    caption number alone.
+✖️ Re-explaining what each annotated experimental condition means
+    when the same explanation already lives in Methods — the
+    caption's job is to point at the picture, not to restate the
+    protocol.
+✖️ A multi-sentence "this is how we ran the analysis" passage
+    embedded in the caption.
+
+**The test:** if the caption sentence would still be true with the
+figure replaced by a black box, it probably belongs in Methods.
+What stays in the caption is what *only the caption can say* —
+"the orange diamond is MetaMuse", "dashed line is the y=x reference",
+"n = 491–498 with usable rows".
+
+Bolded leadgloss is preferred: `**Figure 3:** Strain annotation
+accuracy across methods.` followed by the descriptive sentences. The
+"see Methods" pointer goes inline if it has to appear at all.
+
+This applies to: figure captions in the manuscript body, supplementary
+figure captions, the caption row in `Figures_assembled.docx`-style
+deliverables, and the description fields in any supplementary table
+that names a figure.
+
+---
 
 ## Cross-plot rule: error bars are never SEM (for the helpers that have them)
 
