@@ -21,6 +21,14 @@ def apply_rcparams() -> None:
         # on most systems) — referenced fonts that aren't installed
         # trigger a Font Problems dialog on SVG roundtrip.
         "font.family": ["Helvetica", "Arial", "sans-serif"],
+        # ...but the trailing generic "sans-serif" gets expanded through
+        # ``font.sans-serif`` (and monospace through ``font.monospace``),
+        # which default to a DejaVu-first list — so with ``svg.fonttype:
+        # none`` the SVG font-family string leaked "DejaVu Sans" deck-wide.
+        # Pin BOTH generic families to installed, DejaVu-free fallbacks so
+        # the round-trip stays clean (caught 2026-07-02, figure regen).
+        "font.sans-serif": ["Helvetica", "Arial", "Liberation Sans"],
+        "font.monospace": ["Menlo", "Consolas", "Courier New", "monospace"],
         "svg.fonttype": "none",
         "figure.facecolor": "white",
         "axes.facecolor": "white",

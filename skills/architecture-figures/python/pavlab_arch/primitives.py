@@ -160,6 +160,7 @@ def stage_box(
     is_det: bool = False,
     subtitle: str | None = None,
     fit: bool = True,
+    scale: float = 1.0,
 ) -> None:
     """One stage in a pipeline-comparison diagram.
 
@@ -207,8 +208,9 @@ def stage_box(
     ))
     main_text = prefix + label
     if subtitle:
-        main_fs = fit_text(main_text, w, fontsize=10.0) if fit else 10.0
-        sub_fs = fit_text(subtitle, w, fontsize=7.5, min_fontsize=6.0) if fit else 7.5
+        main_fs = fit_text(main_text, w, fontsize=10.0 * scale) if fit else 10.0 * scale
+        sub_fs = fit_text(subtitle, w, fontsize=7.5 * scale,
+                          min_fontsize=6.0 * scale) if fit else 7.5 * scale
         ax.text(
             x + w / 2, y + h * 0.62, main_text,
             ha="center", va="center", color=_p.TEXT,
@@ -220,7 +222,7 @@ def stage_box(
             fontsize=sub_fs, style="italic",
         )
     elif label:
-        main_fs = fit_text(main_text, w, fontsize=10.0) if fit else 10.0
+        main_fs = fit_text(main_text, w, fontsize=10.0 * scale) if fit else 10.0 * scale
         ax.text(
             x + w / 2, y + h / 2, main_text,
             ha="center", va="center", color=_p.TEXT,
@@ -238,6 +240,7 @@ def dual_stage_box(
     subtitle: str | None = None,
     slope: float = 0.4,
     fit: bool = True,
+    scale: float = 1.0,
 ) -> None:
     """One stage box split diagonally to encode a hybrid stage —
     e.g. AI-recommends-and-curator-decides ("Candidate"), where
@@ -298,8 +301,9 @@ def dual_stage_box(
     # and undo the "each half looks like a stage_box" effect.
 
     if subtitle:
-        main_fs = fit_text(label, w, fontsize=10.0) if fit else 10.0
-        sub_fs = fit_text(subtitle, w, fontsize=7.5, min_fontsize=6.0) if fit else 7.5
+        main_fs = fit_text(label, w, fontsize=10.0 * scale) if fit else 10.0 * scale
+        sub_fs = fit_text(subtitle, w, fontsize=7.5 * scale,
+                          min_fontsize=6.0 * scale) if fit else 7.5 * scale
         ax.text(
             x + w / 2, y + h * 0.62, label,
             ha="center", va="center", color=_p.TEXT,
@@ -311,7 +315,7 @@ def dual_stage_box(
             fontsize=sub_fs, style="italic",
         )
     elif label:
-        main_fs = fit_text(label, w, fontsize=10.0) if fit else 10.0
+        main_fs = fit_text(label, w, fontsize=10.0 * scale) if fit else 10.0 * scale
         ax.text(
             x + w / 2, y + h / 2, label,
             ha="center", va="center", color=_p.TEXT,
