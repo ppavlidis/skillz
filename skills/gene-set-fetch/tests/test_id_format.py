@@ -15,7 +15,18 @@ import pytest
 SPECIES_PREFIX = {
     "human": ("ENSG",),
     "mouse": ("ENSMUSG",),
+    "rat": ("ENSRNOG",),
 }
+
+
+def _present_ids(tsv) -> pd.Series:
+    """Non-empty ensembl_id values. Empty/NA is a legitimate 'no Ensembl
+    mapping' state for symbol-only sources (AnimalTFDB symbol-only rows, and
+    the gwas_catalog / omim query sources), so these checks only police the
+    IDs that are actually present."""
+    s = pd.read_csv(tsv, sep="\t", usecols=["ensembl_id"], dtype="string")["ensembl_id"]
+    s = s.dropna()
+    return s[s.str.strip() != ""]
 
 
 def test_ensembl_ids_have_correct_prefix(require_any_cache):
@@ -25,10 +36,10 @@ def test_ensembl_ids_have_correct_prefix(require_any_cache):
         if species not in SPECIES_PREFIX:
             pytest.fail(f"{tsv.name}: unknown species in meta: {species!r}")
         prefixes = SPECIES_PREFIX[species]
-        df = pd.read_csv(tsv, sep="\t", usecols=["ensembl_id"], dtype="string")
-        offenders = df[~df["ensembl_id"].str.startswith(prefixes, na=False)]
+        present = _present_ids(tsv)
+        offenders = present[~present.str.startswith(prefixes)]
         if len(offenders):
-            sample = offenders["ensembl_id"].head(3).tolist()
+            sample = offenders.head(3).tolist()
             bad.append((tsv.name, species, len(offenders), sample))
     assert not bad, (
         "TSVs containing ensembl_id values that don't match the species prefix:\n"
@@ -37,12 +48,15 @@ def test_ensembl_ids_have_correct_prefix(require_any_cache):
 
 
 def test_ensembl_ids_are_unique(require_any_cache):
-    """ensembl_id is the canonical join key; duplicates break set algebra."""
+    """ensembl_id is the canonical join key; duplicates break set algebra.
+
+    Only populated IDs are policed — empty/NA (symbol-only rows) can't collide
+    on a join key and are legitimate for symbol-based sources."""
     bad = []
     for tsv, _meta_path, _meta in require_any_cache:
-        df = pd.read_csv(tsv, sep="\t", usecols=["ensembl_id"], dtype="string")
-        dups = df[df["ensembl_id"].duplicated(keep=False)]
+        present = _present_ids(tsv)
+        dups = present[present.duplicated(keep=False)]
         if len(dups):
-            sample = dups["ensembl_id"].head(3).tolist()
+            sample = dups.head(3).tolist()
             bad.append((tsv.name, len(dups), sample))
     assert not bad, f"TSVs with duplicate ensembl_id: {bad}"

@@ -34,10 +34,35 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from fetchers._common import USER_AGENT, die, iso_now, require_module, sha256_bytes
+from fetchers._common import (
+    USER_AGENT,
+    die,
+    iso_now,
+    require_module,
+    sha256_bytes,
+    try_get_json,
+)
 
 SOURCE_NAME = "ensembl_genomic"
 BIOMART_URL = "https://www.ensembl.org/biomart/martservice"
+ENSEMBL_REST = "https://rest.ensembl.org"
+
+
+def _live_ensembl_release(requests) -> int | None:
+    """Best-effort: which Ensembl release does www.ensembl.org currently serve?
+
+    BioMart's www endpoint tracks the current release, so the coordinates and
+    ENSG IDs we emit come from whatever release is live *now* — not the skill's
+    default. Capturing it makes the emitted IDs traceable to an actual build.
+    Returns None if the info endpoint is unavailable (never fails the fetch).
+    """
+    data = try_get_json(f"{ENSEMBL_REST}/info/data", requests)
+    if data and isinstance(data.get("releases"), list) and data["releases"]:
+        try:
+            return int(data["releases"][0])
+        except (TypeError, ValueError):
+            return None
+    return None
 
 SPECIES_DATASET = {
     "human": "hsapiens_gene_ensembl",
@@ -134,7 +159,8 @@ def query_head_to_head(
     print(f"[ensembl_genomic] fetching protein-coding gene coordinates ({species}, chr={chromosome or 'all'}) ...", file=sys.stderr)
     genes_df, raw_bytes = _fetch_gene_coords(requests, species, chromosome)
     source_sha = sha256_bytes(raw_bytes)
-    print(f"[ensembl_genomic] {len(genes_df)} genes fetched", file=sys.stderr)
+    live_release = _live_ensembl_release(requests)
+    print(f"[ensembl_genomic] {len(genes_df)} genes fetched (Ensembl release {live_release or 'unknown'})", file=sys.stderr)
 
     # Compute head-to-head pairs:
     # For each chromosome, find + strand genes and - strand genes.
@@ -210,7 +236,14 @@ def query_head_to_head(
         "fetched_at": iso_now(),
         "source": SOURCE_NAME,
         "source_url": BIOMART_URL,
-        "source_version": "Ensembl BioMart (current release; fetched live); protein_coding biotype filter",
+        "source_version": (
+            f"Ensembl BioMart release {live_release or 'unknown'} (fetched live); "
+            f"protein_coding biotype filter"
+        ),
+        # The live release backing the emitted ENSG IDs + coordinates. www
+        # BioMart tracks the current release, which may differ from the skill
+        # default — this records what was actually served.
+        "ensembl_release_live": live_release,
         "source_sha256": source_sha,
         "output_sha256": output_sha,
         "tool_version": "gene-set-fetch 0.1.0",

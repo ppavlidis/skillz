@@ -3,8 +3,8 @@ name: gene-set-fetch
 description: >
   Fetches canonical named gene sets and ad-hoc parameterized gene sets
   (human, mouse), writing provenance-stamped TSV + meta JSON.
-  Named: transcription factors (Lambert 2018, AnimalTFDB), protein-coding
-  (Ensembl). Ad-hoc: disease-gene associations via Open Targets (default),
+  Named: transcription factors (Lambert 2018, AnimalTFDB, JASPAR motif-backed),
+  protein-coding (Ensembl). Ad-hoc: disease-gene associations via Open Targets (default),
   GWAS Catalog, or OMIM; genomic structural features (head-to-head /
   bidirectional promoters via Ensembl BioMart). Use for "list of genes
   in category X" requests — TFs, protein-coding, "genes associated with
@@ -52,6 +52,9 @@ some named category", including:
 - "intersection of Lambert and AnimalTFDB" / "TFs in both Lambert and AnimalTFDB"
 - "strict protein-coding" (Ensembl ∩ HGNC/MGI ∩ GENCODE)
 - "the mouse orthologs of Lambert human TFs"
+- "TFs that have a JASPAR motif" / "TFs with a known binding motif" /
+  "which transcription factors have a JASPAR PWM" / "motif-backed TFs" /
+  "JASPAR TFs" / "genes with a JASPAR CORE profile"
 
 **Ad-hoc disease-gene sets (use `query.py disease`):**
 - "genes associated with Parkinson disease"
@@ -98,9 +101,64 @@ v1 ships these:
 | `tfs_rat_lambert_orthologs` | rat | Lambert human TFs → rat via Ensembl Compara (all homology types) |
 | `tfs_rat_union` | rat | AnimalTFDB ∪ Lambert-orthologs |
 | `tfs_rat_intersection` | rat | AnimalTFDB ∩ Lambert-orthologs |
+| `tfs_human_jaspar` | human | Genes with a JASPAR CORE motif (tax 9606) |
+| `tfs_mouse_jaspar` | mouse | Genes with a JASPAR CORE motif (tax 10090) |
+| `tfs_rat_jaspar` | rat | Genes with a JASPAR CORE motif (tax 10116) |
+| `tfs_human_lambert2018_jaspar` | human | Lambert ∩ JASPAR (curated TFs **with a motif**) |
+| `tfs_mouse_lambert_orthologs_jaspar` | mouse | Lambert-orthologs ∩ JASPAR |
+| `tfs_rat_lambert_orthologs_jaspar` | rat | Lambert-orthologs ∩ JASPAR |
 
 Set algebra joins on `ensembl_id`, normalized to a single Ensembl release
 (default 113; override with `--ensembl-release N`).
+
+### "Which TFs have a JASPAR motif?"
+
+JASPAR is a distinct authority on motif-backed TFs, so it ships as a
+first-class set (`tfs_{species}_jaspar` = every gene with ≥ 1 JASPAR CORE
+binding profile for that taxon). "The TF list, restricted to those with a
+JASPAR motif" is then simply the **intersection** of a curated TF set with the
+JASPAR set — plain `compose.py` set algebra on `ensembl_id`, no special filter
+flag. The pre-wired `tfs_{species}_lambert*_jaspar` composites do exactly this
+against network-fetchable members, so they resolve out of the box. For an
+AnimalTFDB- or union-based variant (e.g. "AnimalTFDB TFs with a motif"), add an
+intersection recipe over `[tfs_{species}_animaltfdb, tfs_{species}_jaspar]` —
+no new fetcher needed.
+
+**Regenerating / updating the JASPAR sets.** These lists are never bundled —
+they regenerate from the committed recipe (`registry.yaml` + `fetchers/jaspar.py`)
+against the live JASPAR + Ensembl APIs. To refresh: `python scripts/fetch.py
+tfs_human_jaspar --refresh` (then re-run any `_jaspar` intersection you rely on
+so the composite picks up the new member). Two properties make this safe to do
+later:
+
+- **Auto-versioning.** The fetcher reads JASPAR's `/releases/` endpoint and
+  bakes the active release into the cache key (`…__jaspar<year>r<n>.tsv`). When
+  JASPAR ships a new release, a plain `fetch.py tfs_human_jaspar` lands the new
+  data in a *new* file beside the old one — nothing is overwritten, so you can
+  diff release-over-release. (One consequence: a cache hit still makes a single
+  lightweight `/releases/` call to learn the current release tag.)
+- **Drift detection.** `source_sha256` in the sidecar hashes the exact set of
+  matrices pulled, so an in-place upstream change is detectable even if the
+  release number hasn't moved.
+
+Caveat, same as the other Ensembl-backed fetchers: symbol→`ensembl_id` mapping
+uses `rest.ensembl.org` at its *current* release, so `--ensembl-release` is
+recorded in the meta but not enforced server-side. Regeneration therefore
+tracks "whatever Ensembl serves now"; pin nothing you can't re-derive.
+
+The live-fetch smoke test (`tests/test_jaspar_network.py`, run with
+`pytest --network`) is the standing check that regeneration still works — it
+fails loud if JASPAR or Ensembl change their API shape.
+
+**JASPAR motif coverage.** Human CORE is well populated (~790 genes at
+release 11 / 2026). The mouse and rat CORE collections are **much sparser**
+(most vertebrate profiles are annotated only to the species they were
+experimentally derived in), so `tfs_mouse_jaspar` / `tfs_rat_jaspar` are small
+and *taxon-literal*: a mouse TF whose human ortholog has a motif will **not**
+appear unless a mouse-tagged profile exists. For cross-species "has a motif"
+work, prefer the human JASPAR set mapped through orthology (fetch
+`tfs_human_jaspar`, then run its Ensembl IDs through
+`ensembl_compara_ortholog_map`) rather than the rodent CORE sets.
 
 ## Set inventory — last-fetched sizes (read this if you're picking a set)
 
@@ -122,6 +180,10 @@ change) — it is intended as a baseline, not a live readout.
 | `tfs_rat_animaltfdb` | 2026-05-26 | **1,461** | Raw AnimalTFDB v4 rat, normalised. |
 | `tfs_rat_lambert_orthologs` | 2026-05-26 | **1,318** | Same shape as mouse-orthologs; rat via Compara (`best_match=False`). |
 | `tfs_rat_intersection` | 2026-05-26 | **1,104** | `tfs_rat_lambert_orthologs ∩ tfs_rat_animaltfdb` on `ensembl_id`. 1,088 carry Entrez. |
+| `tfs_human_jaspar` | 2026-07-03 | **789** | JASPAR release 11 (2026), CORE, `version=latest`: 892 matrices → 790 unique gene names → 789 Ensembl genes. Only `EWSR1-FLI1` (a fusion) unmapped. Carries `jaspar_matrix_ids`, `n_jaspar_motifs`. `entrez_id` left NA (like Lambert). |
+| `tfs_human_lambert2018_jaspar` | 2026-07-03 | **785** | `tfs_human_lambert2018 ∩ tfs_human_jaspar`. The 4 dropped are JASPAR genes Lambert doesn't call a sequence-specific TF. This is the canonical "curated human TF **with a motif**" set. |
+| `tfs_mouse_jaspar` | 2026-07-03 | *sparse* | Mouse-tagged JASPAR CORE only (~hundreds of matrices, far fewer than human). See "JASPAR motif coverage" — taxon-literal, not ortholog-expanded. |
+| `tfs_rat_jaspar` | 2026-07-03 | *very sparse* | Rat-tagged JASPAR CORE only (tens of matrices). Rarely the set you want; see coverage note. |
 | `protein_coding_human` | 2026-05-16 | ~19,000 | Ensembl biotype `protein_coding`. Loose; includes pseudogenes flagged in HGNC. |
 | `protein_coding_human_strict` | 2026-05-16 | ~18,000 | Ensembl ∩ HGNC ∩ GENCODE three-way agreement. |
 | `protein_coding_mouse` | 2026-05-16 | ~21,000 | Ensembl biotype `protein_coding`. |
@@ -305,6 +367,21 @@ dependency.
 
 The key boundary: **do not use literature search** (PubMed, text-mining, summarizing papers) as a substitute for these databases. If none of the three sources have a gene-disease association, that is the answer — not a prompt to read papers.
 
+**Upstream build provenance.** Ad-hoc query artifacts are not pinned to a
+user-chosen Ensembl release (they carry `query_type`, not `ensembl_release`),
+but each sidecar now records the *actual* upstream data release behind its IDs,
+captured live and best-effort (a version-probe failure is recorded as `null`,
+never a hard error):
+
+| Source | Meta fields | Answers |
+|---|---|---|
+| Open Targets | `ot_data_version`, `ot_api_version` | which OT release (→ Ensembl build) the ENSG IDs came from |
+| GWAS Catalog | `gwas_ensembl_release`, `gwas_genome_build`, `gwas_dbsnp_version`, `gwas_mapping_usage_start` | which Ensembl release / genome build was used to map variants → genes |
+| OMIM | `omim_data_version` | which OMIM data version the gene map came from |
+| `genomic head_to_head` | `ensembl_release_live` | which Ensembl release BioMart actually served (may differ from the skill default) |
+
+"Which build did these IDs come from" is therefore a one-grep question on the sidecar.
+
 Scores (Open Targets only): range 0–1 across all evidence types; 0.5+ is a useful threshold for well-supported associations; use `--min-score` to filter.
 
 ### Genomic structural features
@@ -417,6 +494,9 @@ Explicitly *not* in scope:
 
 - Lambert, S.A. *et al.* "The Human Transcription Factors." *Cell* (2018).
 - AnimalTFDB: http://bioinfo.life.hust.edu.cn/AnimalTFDB4/
+- JASPAR: https://jaspar.elixir.no/ — REST API https://jaspar.elixir.no/api/v1/
+  (CORE collection of curated, non-redundant TF binding profiles). Cite the
+  current release paper (release 11 → PubMed 41325984; 2024 → 37962376).
 - Ensembl REST / BioMart: https://rest.ensembl.org/
 - Ensembl Compara (homology / orthologs): https://www.ensembl.org/info/genome/compara/
 - DIOPT: https://www.flyrnai.org/diopt — not used by default in v0.1

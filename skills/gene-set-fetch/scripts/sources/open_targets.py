@@ -45,6 +45,15 @@ from fetchers._common import (
 SOURCE_NAME = "open_targets"
 GRAPHQL_URL = "https://api.platform.opentargets.org/api/v4/graphql"
 
+_META_QUERY = """
+query meta {
+  meta {
+    apiVersion { x y z }
+    dataVersion { year month iteration }
+  }
+}
+"""
+
 _SEARCH_QUERY = """
 query searchDisease($q: String!) {
   search(queryString: $q, entityNames: ["disease"]) {
@@ -93,6 +102,35 @@ def _gql(requests, query: str, variables: dict) -> dict:
     if "errors" in data:
         die(f"Open Targets GraphQL errors: {data['errors']}", fetcher=SOURCE_NAME)
     return data["data"]
+
+
+def _upstream_version(requests) -> dict:
+    """Best-effort capture of the Open Targets data + API release backing these
+    IDs. Never fails the fetch — returns {} if the meta query is unavailable.
+
+    The Open Targets `dataVersion` (YY.MM) pins the underlying Ensembl gene
+    build for the ENSG IDs we emit; recording it answers "which build did
+    these IDs come from" without the caller having to guess.
+    """
+    try:
+        resp = requests.post(
+            GRAPHQL_URL,
+            json={"query": _META_QUERY},
+            headers={"User-Agent": USER_AGENT, "Content-Type": "application/json"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        meta = resp.json()["data"]["meta"]
+    except Exception:
+        return {}
+    dv, av = meta.get("dataVersion") or {}, meta.get("apiVersion") or {}
+    out: dict = {}
+    if dv.get("year") and dv.get("month"):
+        it = f".{dv['iteration']}" if dv.get("iteration") else ""
+        out["ot_data_version"] = f"{dv['year']}.{dv['month']}{it}"
+    if av.get("x"):
+        out["ot_api_version"] = f"{av.get('x')}.{av.get('y')}.{av.get('z')}"
+    return out
 
 
 def _cache_key(disease_term: str, species: str, min_score: float) -> str:
@@ -188,15 +226,21 @@ def query(
 
     df = pd.DataFrame(records).drop_duplicates(subset=["ensembl_id"]).reset_index(drop=True)
 
+    upstream = _upstream_version(requests)
+    ver_tag = upstream.get("ot_data_version", "unknown-version")
+
     source = SourceInfo(
         url=GRAPHQL_URL,
-        version=f"Open Targets Platform (current; fetched live); disease={disease_id}",
+        version=f"Open Targets Platform data {ver_tag} (fetched live); disease={disease_id}",
         sha256=source_sha,
         durability="Open Targets Platform is institutionally hosted (Wellcome Sanger / EMBL-EBI / GSK / Biogen)",
         notes=f"disease_term='{disease_term}'; resolved_id={disease_id}; resolved_name='{disease_name}'; total_associations={total_count}; returned={len(df)}; min_score={min_score}",
     )
 
-    # write_artifact expects ensembl_release; use 0 as sentinel for non-Ensembl-release-pinned sources
+    # Ad-hoc query artifacts are NOT pinned to a user-chosen Ensembl release
+    # (Open Targets returns Ensembl IDs from its own build), so we hand-roll
+    # the meta with `query_type` instead of routing through write_artifact.
+    # See REQUIRED_META_FIELDS_QUERY in tests/test_artifact_format.py.
     tsv_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(tsv_path, sep="\t", index=False)
     output_sha = hashlib.sha256(tsv_path.read_bytes()).hexdigest()
@@ -218,6 +262,9 @@ def query(
         "source_sha256": source_sha,
         "output_sha256": output_sha,
         "tool_version": "gene-set-fetch 0.1.0",
+        # Upstream release backing the emitted ENSG IDs (best-effort capture).
+        "ot_data_version": upstream.get("ot_data_version"),
+        "ot_api_version": upstream.get("ot_api_version"),
     }
     meta_path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")
 

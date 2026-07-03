@@ -164,3 +164,63 @@ sets:
       members:
         - tfs_rat_animaltfdb
         - tfs_rat_lambert_orthologs
+
+  # ---- JASPAR motif-backed TFs ----
+  #
+  # `tfs_{species}_jaspar` = genes with >=1 JASPAR CORE binding profile for
+  # that taxon (a "TF with a known motif"). JASPAR is a distinct authority,
+  # so it ships as a first-class set. "TFs which have a JASPAR motif" is then
+  # the INTERSECTION of a curated TF set with the JASPAR set — no filter flag,
+  # just compose.py doing set algebra on ensembl_id.
+  #
+  # Human CORE is well covered (~900 latest profiles). Mouse/rat CORE are
+  # sparse (most vertebrate profiles are tagged to the species they were
+  # derived in) — see SKILL.md "JASPAR motif coverage".
+
+  tfs_human_jaspar:
+    species: human
+    source: jaspar
+    args:
+      tax_id: 9606
+
+  tfs_mouse_jaspar:
+    species: mouse
+    source: jaspar
+    args:
+      tax_id: 10090
+
+  tfs_rat_jaspar:
+    species: rat
+    source: jaspar
+    args:
+      tax_id: 10116
+
+  # Curated-TF ∩ JASPAR: "the TF list, restricted to those with a JASPAR
+  # motif". Each is composed over network-fetchable members only (Lambert for
+  # human; Lambert orthologs via Compara for mouse/rat), so they resolve
+  # out of the box without the manual AnimalTFDB placement step. For
+  # AnimalTFDB- or union-based variants, add a recipe (see SKILL.md).
+
+  tfs_human_lambert2018_jaspar:
+    species: human
+    compose:
+      op: intersection
+      members:
+        - tfs_human_lambert2018
+        - tfs_human_jaspar
+
+  tfs_mouse_lambert_orthologs_jaspar:
+    species: mouse
+    compose:
+      op: intersection
+      members:
+        - tfs_mouse_lambert_orthologs
+        - tfs_mouse_jaspar
+
+  tfs_rat_lambert_orthologs_jaspar:
+    species: rat
+    compose:
+      op: intersection
+      members:
+        - tfs_rat_lambert_orthologs
+        - tfs_rat_jaspar

@@ -44,6 +44,30 @@ def http_get(url: str, requests_module, **kwargs):
     return requests_module.get(url, headers=headers, **kwargs)
 
 
+def http_post(url: str, requests_module, **kwargs):
+    """Wrap requests.post with our standard User-Agent. Honor caller's headers."""
+    headers = dict(kwargs.pop("headers", None) or {})
+    headers.setdefault("User-Agent", USER_AGENT)
+    return requests_module.post(url, headers=headers, **kwargs)
+
+
+def try_get_json(url: str, requests_module, *, params=None, timeout: int = 30):
+    """Best-effort JSON GET for *provenance enrichment* only. Returns the parsed
+    JSON, or None on any failure (network, HTTP error, non-JSON body).
+
+    This must never be used for the primary data fetch — that fails loud via
+    die(). Capturing an upstream version/build number should never turn a
+    successful fetch into a failure just because a metadata endpoint hiccuped.
+    """
+    try:
+        resp = http_get(url, requests_module, params=params,
+                        headers={"Accept": "application/json"}, timeout=timeout)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return None
+
+
 @dataclass
 class SourceInfo:
     """Provenance for an upstream fetch."""

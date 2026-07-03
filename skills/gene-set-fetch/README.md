@@ -4,7 +4,7 @@ Named, provenance-stamped gene sets for human and mouse. Built for
 reproducibility-first analyses.
 
 The skill answers "give me *the list* of X genes" — transcription factors
-(Lambert 2018, AnimalTFDB), protein-coding genes (Ensembl biotype, or strict
+(Lambert 2018, AnimalTFDB, JASPAR motif-backed), protein-coding genes (Ensembl biotype, or strict
 three-way intersection against HGNC/MGI and GENCODE), and set-algebra
 composites (union, intersection). Distinct from [`gget`](../gget/SKILL.md),
 which answers "tell me about *this gene*".
@@ -33,6 +33,9 @@ python scripts/fetch.py protein_coding_mouse_strict
 
 # Intersection of Lambert and AnimalTFDB for human TFs
 python scripts/fetch.py tfs_human_intersection
+
+# Human TFs that have a JASPAR CORE motif (Lambert ∩ JASPAR)
+python scripts/fetch.py tfs_human_lambert2018_jaspar
 
 # Force re-fetch (ignore cache)
 python scripts/fetch.py tfs_mouse_animaltfdb --refresh
@@ -85,13 +88,14 @@ that wrote `"Gene"` into the ensembl_id column).
 ## Status
 
 v0.1 — SKILL.md, registry, CLI, fetchers (`lambert2018`, `animaltfdb`,
-`ensembl_biomart`, `hgnc`, `mgi`, `gencode`, `ensembl_compara_ortholog_map`),
-`compose`, and a 15-test pytest suite that runs in ~1 second.
+`ensembl_biomart`, `hgnc`, `mgi`, `gencode`, `ensembl_compara_ortholog_map`,
+`jaspar`), `compose`, and a pytest suite that runs in ~1 second.
 
 Validated end-to-end against live upstreams: Lambert (1,637 TFs), Ensembl
 BioMart human, HGNC GCS, GENCODE v45, MGI two-file join (21,957 mouse
-protein-coding), and the three-way `protein_coding_human_strict`
-intersection (19,211 genes).
+protein-coding), the three-way `protein_coding_human_strict` intersection
+(19,211 genes), and JASPAR CORE (`tfs_human_jaspar` = 789 motif-backed genes
+at release 11; `tfs_human_lambert2018_jaspar` = 785 curated TFs with a motif).
 
 Currently broken upstream: **AnimalTFDB** (host moved to wchscu.cn and is
 behind a JavaScript anti-bot challenge). The fetcher fails loud with

@@ -24,6 +24,13 @@ def pytest_addoption(parser):
     )
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "network: test hits live upstream APIs; only runs with --network",
+    )
+
+
 def pytest_collection_modifyitems(config, items):
     if config.getoption("--network"):
         return

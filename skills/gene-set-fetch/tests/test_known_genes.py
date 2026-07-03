@@ -29,6 +29,20 @@ KNOWN_HUMAN_TFS = {
     "NANOG",  # pluripotency
 }
 
+# Canonical human TFs that unambiguously have a JASPAR CORE binding profile —
+# used to sanity-check tfs_human_jaspar and its intersections. Kept to TFs
+# whose motif membership is not in dispute. (Note: not every famous TF is in
+# JASPAR — NANOG, for one, has no CORE profile — so this list is deliberately
+# conservative.)
+KNOWN_JASPAR_HUMAN_TFS = {
+    "CTCF",
+    "TP53",
+    "JUN",
+    "MYC",
+    "GATA3",
+    "SOX2",
+}
+
 # Canonical human protein-coding genes used to sanity-check protein-coding sets.
 KNOWN_HUMAN_PROTEIN_CODING = {
     "TP53",
@@ -73,6 +87,25 @@ def test_lambert_contains_known_tfs(require_any_cache):
     assert not missing, (
         f"tfs_human_lambert2018 is missing canonical TFs: {sorted(missing)}\n"
         f"  if even one of these is missing, the symbol column may be misaligned"
+    )
+
+
+@pytest.mark.parametrize(
+    "set_name",
+    ["tfs_human_jaspar", "tfs_human_lambert2018_jaspar"],
+)
+def test_jaspar_sets_contain_known_motif_tfs(require_any_cache, set_name):
+    """The JASPAR set (and its curated-TF intersection) must contain TFs with
+    an indisputable JASPAR CORE profile. A miss here means the JASPAR name →
+    Ensembl symbol mapping is broken (e.g. dimer split or lookup regression)."""
+    tsv = _find_set(require_any_cache, set_name)
+    if tsv is None:
+        pytest.skip(f"{set_name} not in cache; fetch it to enable this test")
+    symbols = _read_symbols(tsv)
+    missing = KNOWN_JASPAR_HUMAN_TFS - symbols
+    assert not missing, (
+        f"{set_name} is missing canonical motif-backed TFs: {sorted(missing)}\n"
+        f"  the JASPAR name→Ensembl mapping may be broken"
     )
 
 

@@ -42,6 +42,22 @@ REQUIRED_META_FIELDS_COMPOSITE = {
     "tool_version",
 }
 
+# Ad-hoc query artifacts (query.py: disease / genomic) are a distinct family:
+# they are NOT pinned to a user-chosen Ensembl release, so they carry
+# `query_type` instead of `ensembl_release`, and genomic sets count `n_rows`
+# (paired rows) rather than a flat `n_genes`. They still owe full provenance.
+REQUIRED_META_FIELDS_QUERY = {
+    "set",
+    "query_type",
+    "species",
+    "fetched_at",
+    "source_url",
+    "source_version",
+    "source_sha256",
+    "output_sha256",
+    "tool_version",
+}
+
 
 def _sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -70,25 +86,39 @@ def test_every_tsv_is_non_empty(require_any_cache):
     """An empty TSV is the canonical silent-failure mode. Reject."""
     empty = []
     for tsv, _meta_path, meta in require_any_cache:
-        # n_genes recorded in meta must match TSV row count (header excluded).
+        # The recorded row count must match the TSV. Named/disease sets declare
+        # `n_genes`; genomic (head-to-head) sets emit paired rows and declare
+        # `n_rows` instead. Use whichever the meta provides.
         with tsv.open() as f:
             row_count = sum(1 for _ in f) - 1
+        declared = meta.get("n_genes", meta.get("n_rows"))
         if row_count == 0:
             empty.append(tsv.name)
-        elif meta.get("n_genes") != row_count:
+        elif declared != row_count:
+            key = "n_genes" if "n_genes" in meta else "n_rows"
             pytest.fail(
-                f"{tsv.name}: meta.n_genes ({meta.get('n_genes')}) "
-                f"≠ TSV row count ({row_count})"
+                f"{tsv.name}: meta.{key} ({declared}) ≠ TSV row count ({row_count})"
             )
     assert not empty, f"empty TSVs (silent-failure indicator): {empty}"
+
+
+def _required_fields_for(meta: dict) -> set[str]:
+    """Pick the required-field set by artifact family.
+
+    Three families: composite sets (compose.py), ad-hoc query artifacts
+    (query.py, tagged with `query_type`), and leaf named sets (write_artifact).
+    """
+    if "compose" in meta:
+        return REQUIRED_META_FIELDS_COMPOSITE
+    if "query_type" in meta:
+        return REQUIRED_META_FIELDS_QUERY
+    return REQUIRED_META_FIELDS_LEAF
 
 
 def test_every_meta_has_required_fields(require_any_cache):
     bad = []
     for _tsv, meta_path, meta in require_any_cache:
-        is_composite = "compose" in meta
-        required = REQUIRED_META_FIELDS_COMPOSITE if is_composite else REQUIRED_META_FIELDS_LEAF
-        missing = required - set(meta.keys())
+        missing = _required_fields_for(meta) - set(meta.keys())
         if missing:
             bad.append((meta_path.name, missing))
     assert not bad, f"metas missing required fields: {bad}"

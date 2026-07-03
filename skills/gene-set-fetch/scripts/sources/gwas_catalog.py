@@ -35,10 +35,38 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from fetchers._common import USER_AGENT, die, iso_now, require_module, sha256_bytes
+from fetchers._common import (
+    USER_AGENT,
+    die,
+    iso_now,
+    require_module,
+    sha256_bytes,
+    try_get_json,
+)
 
 SOURCE_NAME = "gwas_catalog"
 BASE_URL = "https://www.ebi.ac.uk/gwas/rest/api"
+
+
+def _mapping_metadata(requests) -> dict:
+    """Best-effort capture of the Ensembl release + genome build the GWAS
+    Catalog used to map variants to genes. Never fails the fetch.
+
+    GWAS Catalog maps variant positions to genes against a specific Ensembl
+    release; recording it documents the build behind the reported/mapped genes
+    (even though we emit symbols, not ENSG IDs).
+    """
+    data = try_get_json(f"{BASE_URL}/metadata", requests)
+    try:
+        m = data["_embedded"]["mappingMetadatas"][0]
+    except (TypeError, KeyError, IndexError):
+        return {}
+    return {
+        "gwas_ensembl_release": m.get("ensemblReleaseNumber"),
+        "gwas_genome_build": m.get("genomeBuildVersion"),
+        "gwas_dbsnp_version": m.get("dbsnpVersion"),
+        "gwas_mapping_usage_start": m.get("usageStartDate"),
+    }
 
 
 def _get(requests, url: str, params: dict | None = None) -> dict:
@@ -175,7 +203,11 @@ def query(
 
     df = pd.DataFrame(records)
 
-    # Write artifact manually (no ensembl_release to pin)
+    mapping = _mapping_metadata(requests)
+    build_tag = mapping.get("gwas_genome_build", "unknown-build")
+
+    # Ad-hoc query artifact: emits symbols (not release-pinned ENSG IDs). The
+    # captured mapping metadata records the Ensembl build GWAS Catalog used.
     tsv_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(tsv_path, sep="\t", index=False)
     output_sha = hashlib.sha256(tsv_path.read_bytes()).hexdigest()
@@ -192,10 +224,15 @@ def query(
         "species": species,
         "fetched_at": iso_now(),
         "source_url": f"{BASE_URL}/efoTraits/{trait_id}/associations",
-        "source_version": "NHGRI-EBI GWAS Catalog (current; fetched live)",
+        "source_version": f"NHGRI-EBI GWAS Catalog (fetched live); variant→gene mapping build {build_tag}",
         "source_sha256": source_sha,
         "output_sha256": output_sha,
         "tool_version": "gene-set-fetch 0.1.0",
+        # Ensembl release / genome build GWAS Catalog used to map variants→genes.
+        "gwas_ensembl_release": mapping.get("gwas_ensembl_release"),
+        "gwas_genome_build": mapping.get("gwas_genome_build"),
+        "gwas_dbsnp_version": mapping.get("gwas_dbsnp_version"),
+        "gwas_mapping_usage_start": mapping.get("gwas_mapping_usage_start"),
         "notes": "ensembl_id column is empty; symbols are as reported/mapped by GWAS Catalog curators",
     }
     meta_path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")

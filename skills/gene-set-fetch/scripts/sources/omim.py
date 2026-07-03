@@ -113,6 +113,9 @@ def query(
         "limit": 50,
     })
 
+    # OMIM stamps each response with its data version (best-effort capture).
+    omim_version = search_data.get("omim", {}).get("version")
+
     entries = (
         search_data.get("omim", {})
         .get("searchResponse", {})
@@ -195,10 +198,12 @@ def query(
         "species": species,
         "fetched_at": iso_now(),
         "source_url": f"{BASE_URL}/entry/search",
-        "source_version": "OMIM (current; fetched live)",
+        "source_version": f"OMIM {omim_version or 'unknown-version'} (fetched live)",
         "source_sha256": source_sha,
         "output_sha256": output_sha,
         "tool_version": "gene-set-fetch 0.1.0",
+        # OMIM data version stamped on the API response (no Ensembl IDs emitted).
+        "omim_data_version": omim_version,
         "notes": "ensembl_id is empty; entrez_id and symbol from OMIM gene map; deduplicated by symbol",
     }
     meta_path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")
