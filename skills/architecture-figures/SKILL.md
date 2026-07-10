@@ -103,19 +103,41 @@ already stripped.
 
 Two complementary mechanisms:
 
-1. **Auto-shrink** — `stage_box` calls `fit_text()` by default,
-   which scales the label fontsize down (to a floor of ~6.5pt) if
-   it would overflow the box. Pass `fit=False` to opt out (e.g.
-   when you've already wrapped the label with `\n` and want the
-   sizes consistent across the row).
+1. **Auto-shrink** — `box` / `stage_box` / `dual_stage_box` call
+   `fit_text()` by default, which scales the label fontsize down
+   (to a floor of ~6.5pt) if it would overflow the box. Pass
+   `fit=False` to opt out (e.g. when you've already wrapped the
+   label with `\n` and want the sizes consistent across the row).
+
+   `fit_text` **MEASURES the real rendered text extent** via the
+   renderer + `transData` (exact — proportional glyph widths like
+   m/W/=, bold, multi-line, and the *actual* margined axes width
+   are all accounted for). Do NOT hand-estimate string widths from
+   character counts: a flat `len(text) × avg_char` badly
+   under-estimates wide strings (`"treatment = untreated"` is 11
+   axis-units at 8.6pt, not the ~9 a char-count average predicts)
+   AND ignores that `plt.subplots` axes only span ~0.78× the figure
+   width — the two errors compounded and were the perennial
+   "text overflows its box" bug. (When no `ax` is reachable,
+   `fit_text` falls back to a per-glyph Helvetica-AFM estimate with
+   a usable-width correction — still far better than char-count.)
+
+   Corollary: if `fit_text` shrinks a label to the 6.5pt floor and
+   it *still* looks cramped, the box is genuinely too narrow —
+   **widen the box** (or shorten the label); don't fight `fit_text`.
+   A label at 7pt next to a neighbour at 9pt reads as uneven, so
+   size boxes to the longest label rather than letting one shrink.
 2. **Auto-layout** — `pavlab_arch.layout.grid_columns(widths)`
    places N columns left-to-right with a minimum gap between
    them, scaling widths down proportionally if the total would
    overflow. Combine with `autosize_columns([labels])` to derive
    widths from label lengths.
 
-Both are heuristics — for a final draft, eyeball the rendered
-SVG. But they save the first 80% of overlap whack-a-mole.
+For a final draft, still eyeball the rendered SVG — but with the
+measured `fit_text`, box-text overflow should no longer happen;
+what remains is *free-standing* `ax.text` (not in a box), which is
+not auto-fit — keep those short or wrap them, and mind the true
+axes width (~0.78× the figure) so long lines don't run off-frame.
 
 ## Visual encoding rules (general, not lifecycle-specific)
 

@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from typing import Tuple
 
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Circle
+import matplotlib.patheffects as _pe
 
 from . import palette as _p
 
@@ -22,36 +23,102 @@ from . import palette as _p
 # Text fitting
 # ---------------------------------------------------------------------------
 
+# Helvetica/Arial advance widths (fraction of em) from the Adobe AFM metrics.
+# Used ONLY by fit_text's heuristic fallback; the primary path measures the
+# real rendered extent via the renderer, which is exact.
+_AFM = {
+    " ": .278, "!": .278, '"': .355, "#": .556, "$": .556, "%": .889, "&": .667,
+    "'": .191, "(": .333, ")": .333, "*": .389, "+": .584, ",": .278, "-": .333,
+    ".": .278, "/": .278, ":": .278, ";": .278, "<": .584, "=": .584, ">": .584,
+    "?": .556, "@": 1.015, "[": .278, "\\": .278, "]": .278, "^": .469, "_": .556,
+    "`": .333, "{": .334, "|": .260, "}": .334, "~": .584,
+    "f": .278, "i": .222, "j": .222, "l": .222, "r": .333, "t": .278,
+    "m": .833, "w": .722, "I": .278, "M": .833, "W": .944,
+}
+_WIDE_UPPER = set("ABCDEFGHKNOPQRSTUVXYZ")   # ~0.71 em in Helvetica
+
+
+def _glyph_em(c: str) -> float:
+    if c in _AFM:
+        return _AFM[c]
+    if c.isdigit():
+        return .556
+    if c in _WIDE_UPPER:
+        return .707
+    if c.isupper():
+        return .611          # J, L, Z-ish
+    return .53               # typical lowercase
+
+
+def _measure_axis_width(ax, text, fontsize, weight="normal", family=None):
+    """True width of `text` in x-axis DATA units at `fontsize`, read from
+    the real rendered glyphs via the active renderer + ``transData``. This
+    accounts for the ACTUAL axes size (subplot margins, figure aspect) and
+    for proportional glyph widths / bold / multi-line — everything the old
+    char-count heuristic got wrong. Returns None if the renderer can't be
+    queried (e.g. a non-Agg backend mid-build), so the caller can fall back.
+    """
+    if ax is None:
+        return None
+    fig = ax.figure
+    try:
+        renderer = fig.canvas.get_renderer()
+    except Exception:
+        try:
+            fig.canvas.draw()
+            renderer = fig.canvas.get_renderer()
+        except Exception:
+            return None
+    kw = {"fontsize": fontsize, "fontweight": weight}
+    if family:
+        kw["fontfamily"] = family
+    probe = ax.text(0, 0, text, alpha=0.0, **kw)
+    try:
+        ext = probe.get_window_extent(renderer=renderer)   # display px
+    except Exception:
+        ext = None
+    probe.remove()
+    if ext is None:
+        return None
+    inv = ax.transData.inverted()
+    (x0, _), (x1, _) = inv.transform([(0.0, 0.0), (ext.width, 0.0)])
+    return abs(x1 - x0)
+
+
 def fit_text(
     text: str,
     box_w: float,
     *,
     fontsize: float = 10.0,
     min_fontsize: float = 6.5,
-    char_width_per_pt: float = 0.55,
     padding: float = 1.0,
-    fig_width_in: float = 14.0,
+    ax=None,
+    weight: str = "normal",
+    family=None,
+    char_width_per_pt: float = 0.55,   # legacy knob, unused by the fallback
+    fig_width_in: float = 11.0,        # ~usable axes width after subplot margins
 ) -> float:
-    """Return a fontsize that lets `text` fit horizontally in a
-    box of width `box_w` axis units, shrinking from `fontsize`
-    toward `min_fontsize` if needed.
+    """Return a fontsize that lets `text` fit horizontally in a box of
+    width `box_w` axis units, shrinking from `fontsize` toward
+    `min_fontsize`.
 
-    Heuristic only — matplotlib doesn't expose text-extent in axis
-    coords cheaply. The default constants are calibrated for a
-    14"-wide figure on a 0..100 axis. Slightly conservative.
-
-    For multi-line text, pass the longest single line.
+    When `ax` is given the width is MEASURED from the real rendered text
+    extent (exact — proportional fonts, wide glyphs like m/W/=, bold,
+    multi-line, and the true margined axes width all handled). Without
+    `ax`, a per-glyph Helvetica-metric fallback is used with a usable-
+    width estimate — still far better than the old flat char-count
+    average, which assumed a full-bleed 14" axis and chronically let wide
+    strings overflow their boxes.
     """
-    longest = max((s for s in text.split("\n")), key=len, default="")
-    n = max(len(longest), 1)
-    # axis-units per pt on a fig_width_in canvas at 0..100
-    units_per_pt = 100.0 / (fig_width_in * 72.0)
-    needed_axis = n * fontsize * char_width_per_pt * units_per_pt + padding
-    if needed_axis <= box_w:
+    avail = max(box_w - padding, 1e-6)
+    width = _measure_axis_width(ax, text, fontsize, weight, family)
+    if width is None:
+        longest = max(text.split("\n"), key=len, default="")
+        em = sum(_glyph_em(c) for c in longest)
+        width = em * fontsize * (100.0 / (fig_width_in * 72.0))
+    if width <= avail:
         return fontsize
-    # Shrink proportionally to fit, clamp to min_fontsize.
-    scale = (box_w - padding) / max(needed_axis - padding, 1e-6)
-    return max(min_fontsize, fontsize * scale)
+    return max(min_fontsize, fontsize * avail / width)
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +166,8 @@ def box(
         linestyle=linestyle,
     ))
     if text:
-        fs = fit_text(text, w, fontsize=fontsize) if fit else fontsize
+        fs = fit_text(text, w, fontsize=fontsize, ax=ax,
+                      weight=fontweight) if fit else fontsize
         ax.text(
             x + w / 2, y + h / 2, text,
             ha="center", va="center", color=text_color,
@@ -208,8 +276,9 @@ def stage_box(
     ))
     main_text = prefix + label
     if subtitle:
-        main_fs = fit_text(main_text, w, fontsize=10.0 * scale) if fit else 10.0 * scale
-        sub_fs = fit_text(subtitle, w, fontsize=7.5 * scale,
+        main_fs = fit_text(main_text, w, fontsize=10.0 * scale, ax=ax,
+                           weight="bold") if fit else 10.0 * scale
+        sub_fs = fit_text(subtitle, w, fontsize=7.5 * scale, ax=ax,
                           min_fontsize=6.0 * scale) if fit else 7.5 * scale
         ax.text(
             x + w / 2, y + h * 0.62, main_text,
@@ -222,7 +291,8 @@ def stage_box(
             fontsize=sub_fs, style="italic",
         )
     elif label:
-        main_fs = fit_text(main_text, w, fontsize=10.0 * scale) if fit else 10.0 * scale
+        main_fs = fit_text(main_text, w, fontsize=10.0 * scale, ax=ax,
+                           weight="bold") if fit else 10.0 * scale
         ax.text(
             x + w / 2, y + h / 2, main_text,
             ha="center", va="center", color=_p.TEXT,
@@ -301,8 +371,9 @@ def dual_stage_box(
     # and undo the "each half looks like a stage_box" effect.
 
     if subtitle:
-        main_fs = fit_text(label, w, fontsize=10.0 * scale) if fit else 10.0 * scale
-        sub_fs = fit_text(subtitle, w, fontsize=7.5 * scale,
+        main_fs = fit_text(label, w, fontsize=10.0 * scale, ax=ax,
+                           weight="bold") if fit else 10.0 * scale
+        sub_fs = fit_text(subtitle, w, fontsize=7.5 * scale, ax=ax,
                           min_fontsize=6.0 * scale) if fit else 7.5 * scale
         ax.text(
             x + w / 2, y + h * 0.62, label,
@@ -315,7 +386,8 @@ def dual_stage_box(
             fontsize=sub_fs, style="italic",
         )
     elif label:
-        main_fs = fit_text(label, w, fontsize=10.0 * scale) if fit else 10.0 * scale
+        main_fs = fit_text(label, w, fontsize=10.0 * scale, ax=ax,
+                           weight="bold") if fit else 10.0 * scale
         ax.text(
             x + w / 2, y + h / 2, label,
             ha="center", va="center", color=_p.TEXT,
@@ -388,8 +460,9 @@ def stack_box(
         boxstyle="round,pad=0,rounding_size=0.10",
         linewidth=1.4, edgecolor=color, facecolor="white",
     ))
-    label_fs = fit_text(label, tw, fontsize=7.8, min_fontsize=6.0)
-    task_fs = fit_text(task, tw, fontsize=6.5, min_fontsize=5.5)
+    label_fs = fit_text(label, tw, fontsize=7.8, min_fontsize=6.0, ax=ax,
+                        weight="bold")
+    task_fs = fit_text(task, tw, fontsize=6.5, min_fontsize=5.5, ax=ax)
     ax.text(
         tx + tw / 2, ty + th * 0.66, label,
         ha="center", va="center", color=_p.TEXT,
@@ -425,7 +498,8 @@ def ensemble_proposer(
             boxstyle="round,pad=0.0,rounding_size=0.04",
             linewidth=1.4, edgecolor=color, facecolor=_p.tint(color),
         ))
-        fs = fit_text(label, w, fontsize=8.0, min_fontsize=6.0) if fit else 8.0
+        fs = fit_text(label, w, fontsize=8.0, min_fontsize=6.0, ax=ax,
+                      weight="bold") if fit else 8.0
         ax.text(
             x + w / 2, yi + half / 2, label,
             ha="center", va="center", color=_p.TEXT,
