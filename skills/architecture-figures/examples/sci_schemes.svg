@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="674.64pt" height="213.38625pt" viewBox="0 0 674.64 213.38625" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-07-09T21:31:09.250243</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.9.4, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 213.38625 
+L 674.64 213.38625 
+L 674.64 0 
+L 0 0 
+z
+" style="fill: #fbfaf6"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 14.7642 194.264511 
+L 134.7108 194.264511 
+Q 136.872 194.264511 136.872 192.674946 
+L 136.872 168.036685 
+Q 136.872 166.44712 134.7108 166.44712 
+L 14.7642 166.44712 
+Q 12.603 166.44712 12.603 168.036685 
+L 12.603 192.674946 
+Q 12.603 194.264511 14.7642 194.264511 
+z
+" style="fill: #fbe6db; stroke: #d55e00; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 14.7642 154.52538 
+L 134.7108 154.52538 
+Q 136.872 154.52538 136.872 152.935815 
+L 136.872 128.297554 
+Q 136.872 126.707989 134.7108 126.707989 
+L 14.7642 126.707989 
+Q 12.603 126.707989 12.603 128.297554 
+L 12.603 152.935815 
+Q 12.603 154.52538 14.7642 154.52538 
+z
+" style="fill: #dbe9f4; stroke: #0072b2; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 14.7642 114.78625 
+L 134.7108 114.78625 
+Q 136.872 114.78625 136.872 113.196685 
+L 136.872 88.558424 
+Q 136.872 86.968859 134.7108 86.968859 
+L 14.7642 86.968859 
+Q 12.603 86.968859 12.603 88.558424 
+L 12.603 113.196685 
+Q 12.603 114.78625 14.7642 114.78625 
+z
+" style="fill: #e0f0e9; stroke: #009e73; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 14.7642 75.04712 
+L 134.7108 75.04712 
+Q 136.872 75.04712 136.872 73.457554 
+L 136.872 48.819293 
+Q 136.872 47.229728 134.7108 47.229728 
+L 14.7642 47.229728 
+Q 12.603 47.229728 12.603 48.819293 
+L 12.603 73.457554 
+Q 12.603 75.04712 14.7642 75.04712 
+z
+" style="fill: #edebe4; stroke: #7a756b; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="74.7375" y="182.530581" transform="rotate(-0 74.7375 182.530581)">orange</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="153.081" y="182.574565" transform="rotate(-0 153.081 182.574565)">#D55E00  ·  #FBE6DB</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="74.7375" y="142.906763" transform="rotate(-0 74.7375 142.906763)">blue</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="153.081" y="142.835435" transform="rotate(-0 153.081 142.835435)">#0072B2  ·  #DBE9F4</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="74.7375" y="103.05232" transform="rotate(-0 74.7375 103.05232)">green</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="153.081" y="103.096304" transform="rotate(-0 153.081 103.096304)">#009E73  ·  #E0F0E9</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="74.7375" y="63.31319" transform="rotate(-0 74.7375 63.31319)">grey</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="153.081" y="63.357174" transform="rotate(-0 153.081 63.357174)">#7A756B  ·  #EDEBE4</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #2a2926; font: 12px 'Gill Sans', 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start" x="7.2" y="15.38625" transform="rotate(-0 7.2 15.38625)">Scheme A · Okabe–Ito</text>
+   </g>
+  </g>
+  <g id="axes_2">
+   <g id="patch_6">
+    <path d="M 350.8242 194.264511 
+L 470.7708 194.264511 
+Q 472.932 194.264511 472.932 192.674946 
+L 472.932 168.036685 
+Q 472.932 166.44712 470.7708 166.44712 
+L 350.8242 166.44712 
+Q 348.663 166.44712 348.663 168.036685 
+L 348.663 192.674946 
+Q 348.663 194.264511 350.8242 194.264511 
+z
+" style="fill: #f7e6e9; stroke: #cc6677; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 350.8242 154.52538 
+L 470.7708 154.52538 
+Q 472.932 154.52538 472.932 152.935815 
+L 472.932 128.297554 
+Q 472.932 126.707989 470.7708 126.707989 
+L 350.8242 126.707989 
+Q 348.663 126.707989 348.663 128.297554 
+L 348.663 152.935815 
+Q 348.663 154.52538 350.8242 154.52538 
+z
+" style="fill: #e3eaf2; stroke: #4477aa; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 350.8242 114.78625 
+L 470.7708 114.78625 
+Q 472.932 114.78625 472.932 113.196685 
+L 472.932 88.558424 
+Q 472.932 86.968859 470.7708 86.968859 
+L 350.8242 86.968859 
+Q 348.663 86.968859 348.663 88.558424 
+L 348.663 113.196685 
+Q 348.663 114.78625 350.8242 114.78625 
+z
+" style="fill: #e4f1ee; stroke: #44aa99; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 350.8242 75.04712 
+L 470.7708 75.04712 
+Q 472.932 75.04712 472.932 73.457554 
+L 472.932 48.819293 
+Q 472.932 47.229728 470.7708 47.229728 
+L 350.8242 47.229728 
+Q 348.663 47.229728 348.663 48.819293 
+L 348.663 73.457554 
+Q 348.663 75.04712 350.8242 75.04712 
+z
+" style="fill: #edebe4; stroke: #7a756b; stroke-width: 2; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_10">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="410.7975" y="182.645893" transform="rotate(-0 410.7975 182.645893)">rose</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="489.141" y="182.574565" transform="rotate(-0 489.141 182.574565)">#CC6677  ·  #F7E6E9</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="410.7975" y="142.906763" transform="rotate(-0 410.7975 142.906763)">blue</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="489.141" y="142.835435" transform="rotate(-0 489.141 142.835435)">#4477AA  ·  #E3EAF2</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="410.7975" y="103.167632" transform="rotate(-0 410.7975 103.167632)">teal</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="489.141" y="103.096304" transform="rotate(-0 489.141 103.096304)">#44AA99  ·  #E4F1EE</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #2a2926; font: 700 9px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="410.7975" y="63.31319" transform="rotate(-0 410.7975 63.31319)">grey</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #6b7280; font: 8px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: start" x="489.141" y="63.357174" transform="rotate(-0 489.141 63.357174)">#7A756B  ·  #EDEBE4</text>
+   </g>
+   <g id="text_18">
+    <text style="fill: #2a2926; font: 12px 'Gill Sans', 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start" x="343.26" y="15.38625" transform="rotate(-0 343.26 15.38625)">Scheme B · Tol muted</text>
+   </g>
+  </g>
+ </g>
+</svg>

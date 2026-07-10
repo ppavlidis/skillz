@@ -8,12 +8,14 @@ description: >
   and card — a modern rounded card with a soft drop shadow), arrows
   (lane_arrow, labeled_arrow, arrow), perf_gauge, Gantt primitives
   (gantt_bar, today_line, variance overlays, two-tier diff), legend_block,
-  ensemble_proposer, and fit_text — plus two palettes (the flat ACCENT
-  default and the modern CARD_* card palette), canonical 16:9 / 1:1 / 3:1
-  layouts, grid_columns helper, and apply_rcparams() for Helvetica +
-  editable-SVG defaults. Use when diagramming pipeline architectures,
-  workflow lifecycles, LLM vs deterministic stages, or surfacing a metric
-  (F1, accuracy) as a bar gauge.
+  ensemble_proposer, and fit_text — plus three palettes (the flat ACCENT
+  default, the modern CARD_* card palette, and colour-blind-safe scientific
+  palettes — Okabe–Ito + Tol muted — on a warm-paper base for data figures),
+  canonical 16:9 / 1:1 / 3:1 layouts, grid_columns helper, and apply_rcparams()
+  / apply_sci_rcparams() for Helvetica + editable-SVG defaults. Use when
+  diagramming pipeline architectures, workflow lifecycles, LLM vs deterministic
+  stages, surfacing a metric (F1, accuracy) as a bar gauge, or picking a
+  colour-blind-safe palette for scatter / bar / line figures.
 ---
 
 # architecture-figures
@@ -342,6 +344,79 @@ the ask is a "modern / card / drop-shadow" figure; keep `stage_box` + ACCENT
 for the restrained default. The shadow is a real path effect — it survives PNG
 export and rasterises fine; in SVG it becomes a filter (fine for slides; for a
 clean Illustrator round-trip set `shadow=False`).
+
+### Third option: colour-blind-safe scientific palettes (for data figures)
+
+The ACCENT and CARD palettes above are *actor* encodings for **diagrams**.
+For **data figures** (scatter / bar / line panels) that must survive a
+projector AND greyscale — and share a deck with the diagrams — there's a
+third option: two standard colour-blind-safe qualitative palettes on a
+**warm-paper base**. Both are deuteranopia- and protanopia-safe; pick one per
+figure. (This is the "Scientific Figure Style Guide" palette.)
+
+```python
+from pavlab_arch import palette as P
+from pavlab_arch.style import apply_sci_rcparams
+
+apply_sci_rcparams("A")              # warm paper + Okabe–Ito prop_cycle
+# ...then plain ax.plot / ax.bar / ax.scatter come out in palette order.
+
+P.OKABE_ITO         # full 8-colour dict, keyed by colour name
+P.TOL_MUTED         # full 9-colour + grey dict (Paul Tol "muted")
+P.OKABE_ITO_CYCLE   # ordered list for a prop_cycle / seaborn
+P.sci_scheme("B")["teal"]   # -> ('#44AA99', '#E4F1EE')  (solid, tint)
+P.sci_cycle("A")            # the 4 solids in series order
+P.tint("#0072B2")           # -> '#DBE9F4'  (scheme fills resolve via tint() too)
+P.INK, P.PAPER, P.SCI_GRID  # warm neutrals: #2A2926 / #FBFAF6 / #DED9CE
+```
+
+- **`OKABE_ITO`** (Okabe & Ito, 2008) — the de-facto scientific standard;
+  high contrast, confident on a projector. The default (`scheme="A"`).
+- **`TOL_MUTED`** (Paul Tol) — softer / desaturated; reads gently on a
+  printed page, still fully distinct. `scheme="B"`.
+- **Curated schemes** `SCI_A` / `SCI_B` — a ready-made four-colour selection
+  with a matched pastel *tint* for each (solid = borders/lines/series, tint =
+  fills/panels). Use when you want a small coordinated figure family rather
+  than hand-picking from the full palettes. Keys are colours (`grey`, `green`,
+  `blue`, …), not roles — map them to whatever your figure's categories are.
+
+`apply_sci_rcparams()` is the **data-figure companion** to `apply_rcparams()`
+(which is tuned for spineless diagrams on white): warm paper, warm ink, a
+quiet warm grid, top/right spines dropped, and the scheme's four solids as the
+prop_cycle. The same base ships as a drop-in **`assets/figures.mplstyle`** for
+`plt.style.use(...)` — including from R/other tools that read mplstyle. The
+`#`-less hex in that file's `prop_cycle` line is deliberate: matplotlib treats
+`#` as an inline comment and would truncate the list.
+
+**Type split — Gill Sans talks, Helvetica measures, monospace holds
+identifiers.** `apply_sci_rcparams()` keeps the *in-plot* text (axis labels,
+tick numbers, in-plot annotations) in Helvetica — the SVG-safe measuring face
+(never DejaVu; see §1 below). For *titles / section headers / prose outside the
+plot* the guide's display face is **Gill Sans**, applied per-title so it
+doesn't leak onto your axis numbers:
+
+```python
+from pavlab_arch.style import apply_sci_rcparams, display_title, DISPLAY_FONT
+
+apply_sci_rcparams("A")
+display_title(ax,  "Grouped bar")            # Axes  -> set_title in Gill Sans
+display_title(fig, "Direction A · Okabe–Ito")  # Figure -> suptitle in Gill Sans
+ax.set_ylabel("score")                       # left alone -> stays Helvetica
+```
+
+`DISPLAY_FONT` resolves at import to whichever Gill variant is actually
+installed — `"Gill Sans"` on macOS, `"Gill Sans MT"` on Windows — and prepends
+only that one (listing a font matplotlib can't find spams a `findfont` warning
+per name, per text), with a `Helvetica / Arial / sans-serif` tail so it
+degrades cleanly where no Gill is present. This is a deliberate exception to
+the "installed fonts only" SVG rule: it rides on titles/prose you're willing to
+let fall back, and resolves cleanly on a stock Mac Illustrator install. Don't
+set Gill Sans as the global `font.family` — that would put your axis numbers in
+it too.
+
+See `examples/sci_palette_example.py` for swatches of both palettes, the two
+schemes, and demo bar/scatter panels in each direction (Gill Sans titles,
+Helvetica axes) — plus a self-contained `sci_palette_index.html` preview.
 
 ### Legends: use `legend_block`, never inline label+note stacked inside a chip
 
@@ -1043,6 +1118,16 @@ the external API sits adjacent to its caller (Curation agents)
 instead of across the row, so no arc-over-obstacle routing is
 needed. The inline `tech_box` helper (component name + multi-line
 tech-stack list) is reusable for any stack figure.
+
+`examples/sci_palette_example.py` (swatches + 9.5×3.4 demo panels)
+— showcase for the colour-blind-safe scientific palettes (option C).
+Renders swatch panels for the two full standard palettes (Okabe–Ito,
+Tol muted), the two curated schemes (`SCI_A` / `SCI_B`) as solid-over-
+tint, and a grouped-bar + scatter demo on the warm-paper base in BOTH
+directions — so you can see the palette on real data, not just chips.
+Demonstrates `apply_sci_rcparams()`, `display_title()` (Gill Sans titles
+over Helvetica axes), and `sci_scheme` / `sci_cycle`. Emits a self-
+contained `sci_palette_index.html` preview alongside the SVGs.
 
 `examples/gantt_chart_example.py` (~9×variable)
 — flat / modern Gantt chart showing 15 tasks across 5 categories

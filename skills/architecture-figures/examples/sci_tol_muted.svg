@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="861.84pt" height="134.982188pt" viewBox="0 0 861.84 134.982188" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-07-09T21:31:09.071725</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.9.4, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 134.982188 
+L 861.84 134.982188 
+L 861.84 0 
+L 0 0 
+z
+" style="fill: #fbfaf6"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 17.36928 85.110188 
+L 81.77472 85.110188 
+Q 85.16448 85.110188 85.16448 81.046188 
+L 85.16448 46.502188 
+Q 85.16448 42.438188 81.77472 42.438188 
+L 17.36928 42.438188 
+Q 13.97952 42.438188 13.97952 46.502188 
+L 13.97952 81.046188 
+Q 13.97952 85.110188 17.36928 85.110188 
+z
+" style="fill: #332288; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 102.11328 85.110188 
+L 166.51872 85.110188 
+Q 169.90848 85.110188 169.90848 81.046188 
+L 169.90848 46.502188 
+Q 169.90848 42.438188 166.51872 42.438188 
+L 102.11328 42.438188 
+Q 98.72352 42.438188 98.72352 46.502188 
+L 98.72352 81.046188 
+Q 98.72352 85.110188 102.11328 85.110188 
+z
+" style="fill: #88ccee; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 186.85728 85.110188 
+L 251.26272 85.110188 
+Q 254.65248 85.110188 254.65248 81.046188 
+L 254.65248 46.502188 
+Q 254.65248 42.438188 251.26272 42.438188 
+L 186.85728 42.438188 
+Q 183.46752 42.438188 183.46752 46.502188 
+L 183.46752 81.046188 
+Q 183.46752 85.110188 186.85728 85.110188 
+z
+" style="fill: #44aa99; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 271.60128 85.110188 
+L 336.00672 85.110188 
+Q 339.39648 85.110188 339.39648 81.046188 
+L 339.39648 46.502188 
+Q 339.39648 42.438188 336.00672 42.438188 
+L 271.60128 42.438188 
+Q 268.21152 42.438188 268.21152 46.502188 
+L 268.21152 81.046188 
+Q 268.21152 85.110188 271.60128 85.110188 
+z
+" style="fill: #117733; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 356.34528 85.110188 
+L 420.75072 85.110188 
+Q 424.14048 85.110188 424.14048 81.046188 
+L 424.14048 46.502188 
+Q 424.14048 42.438188 420.75072 42.438188 
+L 356.34528 42.438188 
+Q 352.95552 42.438188 352.95552 46.502188 
+L 352.95552 81.046188 
+Q 352.95552 85.110188 356.34528 85.110188 
+z
+" style="fill: #999933; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 441.08928 85.110188 
+L 505.49472 85.110188 
+Q 508.88448 85.110188 508.88448 81.046188 
+L 508.88448 46.502188 
+Q 508.88448 42.438188 505.49472 42.438188 
+L 441.08928 42.438188 
+Q 437.69952 42.438188 437.69952 46.502188 
+L 437.69952 81.046188 
+Q 437.69952 85.110188 441.08928 85.110188 
+z
+" style="fill: #ddcc77; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 525.83328 85.110188 
+L 590.23872 85.110188 
+Q 593.62848 85.110188 593.62848 81.046188 
+L 593.62848 46.502188 
+Q 593.62848 42.438188 590.23872 42.438188 
+L 525.83328 42.438188 
+Q 522.44352 42.438188 522.44352 46.502188 
+L 522.44352 81.046188 
+Q 522.44352 85.110188 525.83328 85.110188 
+z
+" style="fill: #cc6677; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 610.57728 85.110188 
+L 674.98272 85.110188 
+Q 678.37248 85.110188 678.37248 81.046188 
+L 678.37248 46.502188 
+Q 678.37248 42.438188 674.98272 42.438188 
+L 610.57728 42.438188 
+Q 607.18752 42.438188 607.18752 46.502188 
+L 607.18752 81.046188 
+Q 607.18752 85.110188 610.57728 85.110188 
+z
+" style="fill: #882255; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 695.32128 85.110188 
+L 759.72672 85.110188 
+Q 763.11648 85.110188 763.11648 81.046188 
+L 763.11648 46.502188 
+Q 763.11648 42.438188 759.72672 42.438188 
+L 695.32128 42.438188 
+Q 691.93152 42.438188 691.93152 46.502188 
+L 691.93152 81.046188 
+Q 691.93152 85.110188 695.32128 85.110188 
+z
+" style="fill: #aa4499; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 780.06528 85.110188 
+L 844.47072 85.110188 
+Q 847.86048 85.110188 847.86048 81.046188 
+L 847.86048 46.502188 
+Q 847.86048 42.438188 844.47072 42.438188 
+L 780.06528 42.438188 
+Q 776.67552 42.438188 776.67552 46.502188 
+L 776.67552 81.046188 
+Q 776.67552 85.110188 780.06528 85.110188 
+z
+" style="fill: #dddddd; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="49.572" y="101.387531" transform="rotate(-0 49.572 101.387531)">indigo</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="49.572" y="113.182109" transform="rotate(-0 49.572 113.182109)">#332288</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="134.316" y="101.317141" transform="rotate(-0 134.316 101.317141)">cyan</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="134.316" y="113.182109" transform="rotate(-0 134.316 113.182109)">#88CCEE</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="219.06" y="101.367609" transform="rotate(-0 219.06 101.367609)">teal</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="219.06" y="113.182109" transform="rotate(-0 219.06 113.182109)">#44AA99</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="303.804" y="101.258703" transform="rotate(-0 303.804 101.258703)">green</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="303.804" y="113.182109" transform="rotate(-0 303.804 113.182109)">#117733</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="388.548" y="101.367609" transform="rotate(-0 388.548 101.367609)">olive</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="388.548" y="113.182109" transform="rotate(-0 388.548 113.182109)">#999933</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="473.292" y="101.367609" transform="rotate(-0 473.292 101.367609)">sand</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="473.292" y="113.182109" transform="rotate(-0 473.292 113.182109)">#DDCC77</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="558.036" y="101.367609" transform="rotate(-0 558.036 101.367609)">rose</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="558.036" y="113.182109" transform="rotate(-0 558.036 113.182109)">#CC6677</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="642.78" y="101.367609" transform="rotate(-0 642.78 101.367609)">wine</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="642.78" y="113.182109" transform="rotate(-0 642.78 113.182109)">#882255</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="727.524" y="101.367609" transform="rotate(-0 727.524 101.367609)">purple</text>
+   </g>
+   <g id="text_18">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="727.524" y="113.182109" transform="rotate(-0 727.524 113.182109)">#AA4499</text>
+   </g>
+   <g id="text_19">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="812.268" y="101.258703" transform="rotate(-0 812.268 101.258703)">grey</text>
+   </g>
+   <g id="text_20">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="812.268" y="113.182109" transform="rotate(-0 812.268 113.182109)">#DDDDDD</text>
+   </g>
+   <g id="text_21">
+    <text style="fill: #2a2926; font: 13px 'Gill Sans', 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start" x="7.2" y="16.182188" transform="rotate(-0 7.2 16.182188)">Paul Tol “muted” — softer, print-friendly (9 + grey)</text>
+   </g>
+  </g>
+ </g>
+</svg>

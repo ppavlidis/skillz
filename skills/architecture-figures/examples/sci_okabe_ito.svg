@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="696.24pt" height="134.994375pt" viewBox="0 0 696.24 134.994375" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-07-09T21:31:08.947016</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.9.4, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 134.994375 
+L 696.24 134.994375 
+L 696.24 0 
+L 0 0 
+z
+" style="fill: #fbfaf6"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 17.4276 85.122375 
+L 82.2024 85.122375 
+Q 85.6116 85.122375 85.6116 81.058375 
+L 85.6116 46.514375 
+Q 85.6116 42.450375 82.2024 42.450375 
+L 17.4276 42.450375 
+Q 14.0184 42.450375 14.0184 46.514375 
+L 14.0184 81.058375 
+Q 14.0184 85.122375 17.4276 85.122375 
+z
+" style="stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 102.6576 85.122375 
+L 167.4324 85.122375 
+Q 170.8416 85.122375 170.8416 81.058375 
+L 170.8416 46.514375 
+Q 170.8416 42.450375 167.4324 42.450375 
+L 102.6576 42.450375 
+Q 99.2484 42.450375 99.2484 46.514375 
+L 99.2484 81.058375 
+Q 99.2484 85.122375 102.6576 85.122375 
+z
+" style="fill: #e69f00; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 187.8876 85.122375 
+L 252.6624 85.122375 
+Q 256.0716 85.122375 256.0716 81.058375 
+L 256.0716 46.514375 
+Q 256.0716 42.450375 252.6624 42.450375 
+L 187.8876 42.450375 
+Q 184.4784 42.450375 184.4784 46.514375 
+L 184.4784 81.058375 
+Q 184.4784 85.122375 187.8876 85.122375 
+z
+" style="fill: #56b4e9; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 273.1176 85.122375 
+L 337.8924 85.122375 
+Q 341.3016 85.122375 341.3016 81.058375 
+L 341.3016 46.514375 
+Q 341.3016 42.450375 337.8924 42.450375 
+L 273.1176 42.450375 
+Q 269.7084 42.450375 269.7084 46.514375 
+L 269.7084 81.058375 
+Q 269.7084 85.122375 273.1176 85.122375 
+z
+" style="fill: #009e73; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 358.3476 85.122375 
+L 423.1224 85.122375 
+Q 426.5316 85.122375 426.5316 81.058375 
+L 426.5316 46.514375 
+Q 426.5316 42.450375 423.1224 42.450375 
+L 358.3476 42.450375 
+Q 354.9384 42.450375 354.9384 46.514375 
+L 354.9384 81.058375 
+Q 354.9384 85.122375 358.3476 85.122375 
+z
+" style="fill: #f0e442; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 443.5776 85.122375 
+L 508.3524 85.122375 
+Q 511.7616 85.122375 511.7616 81.058375 
+L 511.7616 46.514375 
+Q 511.7616 42.450375 508.3524 42.450375 
+L 443.5776 42.450375 
+Q 440.1684 42.450375 440.1684 46.514375 
+L 440.1684 81.058375 
+Q 440.1684 85.122375 443.5776 85.122375 
+z
+" style="fill: #0072b2; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 528.8076 85.122375 
+L 593.5824 85.122375 
+Q 596.9916 85.122375 596.9916 81.058375 
+L 596.9916 46.514375 
+Q 596.9916 42.450375 593.5824 42.450375 
+L 528.8076 42.450375 
+Q 525.3984 42.450375 525.3984 46.514375 
+L 525.3984 81.058375 
+Q 525.3984 85.122375 528.8076 85.122375 
+z
+" style="fill: #d55e00; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 614.0376 85.122375 
+L 678.8124 85.122375 
+Q 682.2216 85.122375 682.2216 81.058375 
+L 682.2216 46.514375 
+Q 682.2216 42.450375 678.8124 42.450375 
+L 614.0376 42.450375 
+Q 610.6284 42.450375 610.6284 46.514375 
+L 610.6284 81.058375 
+Q 610.6284 85.122375 614.0376 85.122375 
+z
+" style="fill: #cc79a7; stroke: #2a2926; stroke-width: 0.6; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="49.815" y="101.379797" transform="rotate(-0 49.815 101.379797)">black</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="49.815" y="113.194297" transform="rotate(-0 49.815 113.194297)">#000000</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="135.045" y="101.270891" transform="rotate(-0 135.045 101.270891)">orange</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="135.045" y="113.194297" transform="rotate(-0 135.045 113.194297)">#E69F00</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="220.275" y="101.399719" transform="rotate(-0 220.275 101.399719)">sky blue</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="220.275" y="113.194297" transform="rotate(-0 220.275 113.194297)">#56B4E9</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="305.505" y="101.399719" transform="rotate(-0 305.505 101.399719)">bluish green</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="305.505" y="113.194297" transform="rotate(-0 305.505 113.194297)">#009E73</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="390.735" y="101.379797" transform="rotate(-0 390.735 101.379797)">yellow</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="390.735" y="113.194297" transform="rotate(-0 390.735 113.194297)">#F0E442</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="475.965" y="101.379797" transform="rotate(-0 475.965 101.379797)">blue</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="475.965" y="113.194297" transform="rotate(-0 475.965 113.194297)">#0072B2</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="561.195" y="101.379797" transform="rotate(-0 561.195 101.379797)">vermillion</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="561.195" y="113.194297" transform="rotate(-0 561.195 113.194297)">#D55E00</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #2a2926; font: 8.5px 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle" x="646.425" y="101.399719" transform="rotate(-0 646.425 101.399719)">reddish purple</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #6b7280; font: 7.5px 'Menlo', 'Consolas', 'Courier New', monospace; text-anchor: middle" x="646.425" y="113.194297" transform="rotate(-0 646.425 113.194297)">#CC79A7</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #2a2926; font: 13px 'Gill Sans', 'Helvetica', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start" x="7.2" y="16.194375" transform="rotate(-0 7.2 16.194375)">Okabe–Ito — the scientific standard (8 colours)</text>
+   </g>
+  </g>
+ </g>
+</svg>
