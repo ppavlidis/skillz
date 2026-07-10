@@ -59,3 +59,36 @@ def tint(hex_color: str) -> str:
     very soft gray if not in the map.
     """
     return _TINT_MAP.get(hex_color, "#f9fafb")
+
+
+# ---------------------------------------------------------------------------
+# Modern "card" palette — an OPTIONAL alternative to the flat ACCENT palette,
+# for rounded-corner card figures with soft drop shadows (see
+# primitives.card()). Each entry is a ``(fill, edge, text)`` triple: a soft
+# tinted fill, a crisp saturated border, and a dark same-hue text colour so
+# labels stay legible on the fill. Pair with primitives.card(...) +
+# CARD_ARROW for the "modern architecture diagram" look.
+#
+# Actor convention mirrors the ACCENT palette:
+#   CARD_LLM   indigo  — LLM / agent stage
+#   CARD_DET   slate   — deterministic (Python, no model)
+#   CARD_IO    teal    — I/O surface (inputs / outputs / curator-facing)
+#   CARD_JUDGE violet  — strong-tier judge (Opus / extended thinking)
+#   CARD_WARN  amber   — load-bearing asset / warning
+#   CARD_BAD   red     — failure / recall / loop-back
+CARD_LLM   = ("#E0E7FF", "#6366F1", "#1E1B4B")  # indigo-100 / 500 / 950
+CARD_DET   = ("#F1F5F9", "#94A3B8", "#334155")  # slate-100  / 400 / 700
+CARD_IO    = ("#CCFBF1", "#14B8A6", "#134E4A")  # teal-100   / 500 / 900
+CARD_JUDGE = ("#F3E8FF", "#A855F7", "#581C87")  # violet-100 / 500 / 900
+CARD_WARN  = ("#FEF3C7", "#F59E0B", "#78350F")  # amber-100  / 500 / 900
+CARD_BAD   = ("#FEE2E2", "#EF4444", "#7F1D1D")  # red-100    / 500 / 900
+
+CARD_ARROW = "#94A3B8"   # slate-400 connectors
+CARD_TEXT  = "#0F172A"   # slate-900 titles
+CARD_SUBTLE = "#64748B"  # slate-500 captions / notes
+
+# name -> triple, for callers that prefer to look up by role string.
+CARD_PALETTE = {
+    "llm": CARD_LLM, "deterministic": CARD_DET, "io": CARD_IO,
+    "judge": CARD_JUDGE, "warn": CARD_WARN, "bad": CARD_BAD,
+}

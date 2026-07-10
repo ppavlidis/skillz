@@ -4,10 +4,12 @@ description: >
   Matplotlib primitives for hand-authored architecture, methods, pipeline,
   and lifecycle figures in a flat publication-grade style. Ships
   `pavlab_arch.primitives` — boxes (stage_box for LLM vs deterministic
-  styling, dual_stage_box, stack_box, oval, circle, cylinder, container),
-  arrows (lane_arrow, labeled_arrow, arrow), perf_gauge, Gantt primitives
+  styling, dual_stage_box, stack_box, oval, circle, cylinder, container,
+  and card — a modern rounded card with a soft drop shadow), arrows
+  (lane_arrow, labeled_arrow, arrow), perf_gauge, Gantt primitives
   (gantt_bar, today_line, variance overlays, two-tier diff), legend_block,
-  ensemble_proposer, and fit_text — plus canonical 16:9 / 1:1 / 3:1
+  ensemble_proposer, and fit_text — plus two palettes (the flat ACCENT
+  default and the modern CARD_* card palette), canonical 16:9 / 1:1 / 3:1
   layouts, grid_columns helper, and apply_rcparams() for Helvetica +
   editable-SVG defaults. Use when diagramming pipeline architectures,
   workflow lifecycles, LLM vs deterministic stages, or surfacing a metric
@@ -284,6 +286,40 @@ hub).
 the arrow connects shape centres but should visually terminate at the
 shape boundary (cycle arrows that connect pill centres but should look
 like they touch pill edges).
+
+### Two palettes: the flat ACCENT default, and the modern `CARD_*` option
+
+There are **two palettes** — pick per figure, don't mix:
+
+1. **Flat ACCENT palette** (default) — `palette.ACCENT` / `ACCENT_2…5` /
+   `DET`, single hex colours, used by `stage_box` / `box` (border colour +
+   `tint()` fill). Publication-restrained; the right default for most
+   methods/pipeline figures.
+2. **Modern `CARD_*` palette** (opt-in) — soft-fill + crisp-border + dark-text
+   **triples** for a contemporary rounded-**card + drop-shadow** look. Use with
+   `primitives.card(...)`:
+
+```python
+from pavlab_arch.primitives import card, arrow
+from pavlab_arch import palette as P
+
+r = card(ax, x, y, w, h, "Design proposer", subtitle="sonnet",
+         palette=P.CARD_LLM)                 # indigo LLM card + soft shadow
+card(ax, x2, y, w, h, "Pre-assignment checks", palette=P.CARD_DET)  # slate
+card(ax, x3, y, w, h, "Opus escalation", palette=P.CARD_JUDGE, dashed=True)
+arrow(ax, r[0]+r[2], y+h/2, x2, y+h/2, color=P.CARD_ARROW)          # connect
+```
+
+`CARD_*` roles mirror the actor convention: `CARD_LLM` (indigo) LLM/agent ·
+`CARD_DET` (slate) deterministic · `CARD_IO` (teal) I/O surface · `CARD_JUDGE`
+(violet) strong-tier judge · `CARD_WARN` (amber) load-bearing · `CARD_BAD`
+(red) failure/loop-back. `card()` returns `(x,y,w,h)` for arrow anchoring;
+`shadow=True` by default (offset in points, resolution-independent);
+`dashed=True` for conditional/planned stages. Prefer `card()` + `CARD_*` when
+the ask is a "modern / card / drop-shadow" figure; keep `stage_box` + ACCENT
+for the restrained default. The shadow is a real path effect — it survives PNG
+export and rasterises fine; in SVG it becomes a filter (fine for slides; for a
+clean Illustrator round-trip set `shadow=False`).
 
 ### Legends: use `legend_block`, never inline label+note stacked inside a chip
 

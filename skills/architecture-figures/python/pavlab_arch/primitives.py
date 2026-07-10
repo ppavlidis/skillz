@@ -1354,3 +1354,64 @@ def container(
             color=label_color or ec,
             fontsize=label_fontsize, fontweight=label_fontweight,
         )
+
+
+# ---------------------------------------------------------------------------
+# Modern rounded card with a soft drop shadow — the "card" architecture look
+# ---------------------------------------------------------------------------
+
+def card(
+    ax,
+    x: float, y: float, w: float, h: float,
+    title: str,
+    *,
+    subtitle: str | None = None,
+    palette=None,
+    dashed: bool = False,
+    shadow: bool = True,
+    rounding: float = 1.4,
+    lw: float = 1.8,
+    fontsize: float = 9.0,
+    title_color: str | None = None,
+    subtitle_color: str | None = None,
+) -> Tuple[float, float, float, float]:
+    """Rounded-corner card with a soft drop shadow — the modern architecture
+    look (an alternative to ``stage_box``/``box`` when you want depth + a
+    contemporary palette).
+
+    ``palette`` is a ``(fill, edge, text)`` triple — use the ``palette.CARD_*``
+    constants (``CARD_LLM`` indigo, ``CARD_DET`` slate, ``CARD_IO`` teal,
+    ``CARD_JUDGE`` violet, ``CARD_WARN`` amber, ``CARD_BAD`` red) so a figure's
+    actor colours stay consistent. Defaults to ``CARD_LLM``.
+
+    - ``subtitle`` reads smaller + italic below the title in the border colour —
+      use for a model tier (``"sonnet"``) or a one-line role note.
+    - ``dashed`` gives a dashed border (conditional / optional / planned stage).
+    - ``shadow`` adds a subtle offset drop shadow via matplotlib path effects
+      (offset is in points, so it is resolution-independent).
+
+    Returns ``(x, y, w, h)`` so callers can anchor arrows to the card edges
+    (e.g. ``arrow(ax, x+w, y+h/2, ...)``). Pair with ``palette.CARD_ARROW`` for
+    the connectors.
+    """
+    fill, edge, text = palette if palette is not None else _p.CARD_LLM
+    patch = FancyBboxPatch(
+        (x, y), w, h,
+        boxstyle=f"round,pad=0,rounding_size={rounding}",
+        facecolor=fill, edgecolor=edge, linewidth=lw,
+        linestyle=(0, (3, 2)) if dashed else "solid", zorder=3,
+    )
+    if shadow:
+        patch.set_path_effects([_pe.withSimplePatchShadow(
+            offset=(2.2, -2.2), shadow_rgbFace="#0f172a", alpha=0.16)])
+    ax.add_patch(patch)
+
+    ty = y + h * (0.60 if subtitle else 0.5)
+    ax.text(x + w / 2, ty, title, ha="center", va="center",
+            fontsize=fontsize, fontweight="bold",
+            color=title_color or text, zorder=4, linespacing=0.95)
+    if subtitle:
+        ax.text(x + w / 2, y + h * 0.24, subtitle, ha="center", va="center",
+                fontsize=fontsize - 1.8, style="italic",
+                color=subtitle_color or edge, zorder=4)
+    return (x, y, w, h)
